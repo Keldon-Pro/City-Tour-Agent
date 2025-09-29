@@ -1,0 +1,3911 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if default_view == 'settings' %}基本设置{% else %}文档管理{% endif %} - 智慧旅游RAG系统</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        // 从服务器传递的默认视图设置
+        window.defaultView = '{{ default_view or "documents" }}';
+    </script>
+    <style>
+        :root {
+            --primary: #4361ee;
+            --primary-light: #4dabf7;
+            --secondary: #6c757d;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --light: #f8f9fa;
+            --dark: #1a202c;
+            --border: #e2e8f0;
+            --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fb;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .admin-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* 侧边导航栏 */
+        .sidebar {
+            width: 260px;
+            background: white;
+            border-right: 1px solid var(--border);
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        .logo {
+            padding: 24px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo h1 {
+            font-size: 1.4rem;
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .nav-links {
+            padding: 20px 0;
+        }
+
+        .nav-item {
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background-color: rgba(67, 97, 238, 0.1);
+            border-left: 4px solid var(--primary);
+        }
+
+        .nav-item i {
+            margin-right: 12px;
+            color: var(--secondary);
+        }
+
+        .nav-item span {
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        /* 主内容区 */
+        .main-content {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header h2 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2rem;
+            color: var(--secondary);
+        }
+
+        /* 卡片样式 */
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 32px;
+            margin-bottom: 32px;
+            box-shadow: var(--card-shadow);
+        }
+
+        .card h3 {
+            margin-bottom: 16px;
+            color: var(--dark);
+        }
+
+        /* 上传区域 */
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            padding: 32px 16px;
+            text-align: center;
+            margin-bottom: 24px;
+            transition: all 0.2s;
+            background-color: var(--light);
+        }
+
+        .upload-area.dragover, .upload-area.uploading {
+            border-color: var(--primary);
+            background-color: rgba(67, 97, 238, 0.05);
+        }
+
+        .upload-area i {
+            font-size: 2.5rem;
+            color: var(--secondary);
+            margin-bottom: 16px;
+        }
+
+        .upload-area p {
+            margin-bottom: 16px;
+            font-size: 1.1rem;
+        }
+
+        .upload-note {
+            font-size: 0.85rem;
+            color: var(--secondary);
+            margin-top: 16px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .upload-btn:hover {
+            background: #2f4ad0;
+        }
+
+        .progress-container {
+            margin-top: 24px;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress {
+            height: 100%;
+            background: var(--success);
+            width: 0%;
+            transition: width 0.4s ease;
+        }
+
+        /* 索引区域 */
+        .index-area {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            position: relative;
+        }
+
+        .index-area p {
+            margin-bottom: 12px;
+        }
+
+        .empty-index-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            background-color: var(--light);
+            color: var(--secondary);
+        }
+
+        .empty-index-state i {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: var(--secondary);
+        }
+
+        .empty-index-state p {
+            font-size: 1.1rem;
+            margin: 0;
+        }
+
+        .index-info {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: var(--light);
+            border-radius: 8px;
+        }
+
+        .index-details p {
+            margin: 8px 0;
+            color: var(--secondary);
+        }
+
+        .index-details i {
+            margin-right: 8px;
+            color: var(--primary);
+        }
+
+        .cache-file {
+            font-weight: 500;
+            color: var(--dark) !important;
+        }
+
+        .index-status {
+            font-weight: bold;
+            margin-left: 16px;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        .index-status.indexed {
+            color: var(--success);
+        }
+
+        .index-status.not-indexed {
+            color: var(--danger);
+        }
+
+        /* 文档列表 */
+        .documents-section {
+            margin-top: 32px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-header h3 {
+            font-size: 1.2rem;
+            color: var(--dark);
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-box input {
+            padding: 10px 16px 10px 40px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--light);
+            width: 280px;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 14px;
+            top: 12px;
+            color: var(--secondary);
+        }
+
+        .documents-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .document-item {
+            display: flex;
+            align-items: center;
+            border: 1px solid var(--border);
+            padding: 12px 16px;
+            border-radius: 8px;
+            transition: box-shadow 0.2s;
+        }
+
+        .document-item:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .doc-icon {
+            background: rgba(67, 97, 238, 0.15); /* 蓝色系背景 */
+            color: var(--primary); /* 蓝色系图标 */
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            margin-right: 12px;
+            font-size: 1rem;
+        }
+
+        .doc-info {
+            flex: 1;
+            margin-right: 16px;
+        }
+
+        .doc-header {
+            margin-bottom: 4px;
+        }
+
+        .doc-info h4 {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin: 0;
+            color: var(--dark);
+        }
+
+        .upload-time {
+            font-size: 0.9rem;
+            color: var(--secondary);
+            margin-bottom: 6px;
+            text-align: left;
+            display: flex;
+            align-items: center;
+        }
+
+        .upload-time i {
+            font-size: 0.75rem;
+            width: 16px;
+            text-align: center;
+            margin-right: 4px;
+        }
+
+        .doc-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .doc-actions button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #6c757d;
+            padding: 6px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .doc-actions .delete-btn:hover {
+            background: rgba(220, 53, 69, 0.1);
+            color: var(--danger);
+        }
+
+        /* 编辑描述按钮 */
+        .edit-desc-btn {
+            background: none;
+            border: none;
+            color: var(--secondary);
+            cursor: pointer;
+            padding: 6px 0;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            width: fit-content;
+        }
+
+        .edit-desc-btn:hover {
+            color: var(--primary);
+        }
+
+        .edit-desc-btn i {
+            font-size: 0.8rem;
+            width: 16px;
+            text-align: center;
+        }
+
+        /* 文档描述 */
+        .doc-description {
+            margin-top: 4px;
+        }
+
+        .description-display {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .description-label {
+            font-size: 0.9rem;
+            color: var(--secondary);
+            font-weight: normal;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .description-label i {
+            font-size: 0.8rem;
+            width: 16px;
+            text-align: center;
+        }
+
+        .description-text {
+            font-size: 0.9rem;
+            color: var(--dark);
+            max-height: 60px;
+            overflow-y: auto;
+            margin-left: 20px;
+            line-height: 1.4;
+        }
+
+        .description-text:empty::before {
+            content: "暂无描述";
+            color: var(--secondary);
+            font-style: italic;
+        }
+
+
+
+        .description-edit {
+            margin-top: 4px;
+        }
+
+        .description-input {
+            width: 100%;
+            min-height: 60px;
+            max-height: 120px;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            resize: vertical;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+
+        .description-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.1);
+        }
+
+        .edit-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .save-desc-btn, .cancel-desc-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .save-desc-btn {
+            background: var(--success);
+            color: white;
+        }
+
+        .save-desc-btn:hover {
+            background: #218838;
+        }
+
+        .cancel-desc-btn {
+            background: var(--light);
+            color: var(--secondary);
+            border: 1px solid var(--border);
+        }
+
+        .cancel-desc-btn:hover {
+            background: #e9ecef;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 70px;
+            }
+            .logo h1, .nav-item span {
+                display: none;
+            }
+            .nav-item {
+                justify-content: center;
+            }
+            .nav-item i {
+                margin-right: 0;
+                font-size: 1.2rem;
+            }
+            .search-box input {
+                width: 180px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .header h2 {
+                margin-bottom: 16px;
+            }
+            .card {
+                padding: 20px;
+            }
+            .document-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .doc-icon {
+                margin-bottom: 12px;
+            }
+            .doc-actions {
+                margin-top: 16px;
+                width: 100%;
+                display: flex;
+                justify-content: flex-end;
+            }
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            margin: 20px;
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            background-color: var(--light);
+            color: var(--secondary);
+            font-size: 1.1rem;
+        }
+
+        .empty-state i {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        /* 通知样式 */
+        .notification-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        .notification {
+            min-width: 320px;
+            max-width: 420px;
+            padding: 16px 20px;
+            margin-bottom: 12px;
+            border-radius: 12px;
+            color: white !important;
+            display: flex;
+            align-items: center;
+            box-shadow: var(--card-shadow);
+            backdrop-filter: blur(10px);
+            pointer-events: auto;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 500;
+        }
+
+        .notification.show {
+            opacity: 1 !important;
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: linear-gradient(135deg, var(--success), #229954) !important;
+            color: white !important;
+            box-shadow: 0 8px 25px rgba(46, 204, 113, 0.3);
+        }
+
+        .notification.warning {
+            background: linear-gradient(135deg, #f39c12, #e67e22) !important;
+            color: white !important;
+            box-shadow: 0 8px 25px rgba(243, 156, 18, 0.3);
+        }
+
+        .notification.error {
+            background: linear-gradient(135deg, var(--danger), #c0392b) !important;
+            color: white !important;
+            box-shadow: 0 8px 25px rgba(231, 76, 60, 0.3);
+        }
+
+        .notification i {
+            margin-right: 12px;
+            font-size: 1.2rem;
+            min-width: 20px;
+        }
+
+        .notification span {
+            flex: 1;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .account-menu {
+            position: relative;
+            display: inline-block;
+        }
+
+        .account-icon {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.8rem;
+            color: var(--secondary);
+        }
+
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            right: 0;
+            background-color: white;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            min-width: 120px;
+            z-index: 1000;
+        }
+
+        .dropdown-menu a {
+            display: block;
+            padding: 10px 16px;
+            color: var(--dark);
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .dropdown-menu a:hover {
+            background-color: rgba(67, 97, 238, 0.1);
+            color: var(--primary);
+        }
+
+        .account-menu:hover .dropdown-menu {
+            display: block;
+        }
+
+        /* 配置页面样式 */
+        .page-content {
+            width: 100%;
+        }
+
+        .config-section {
+            margin-top: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--dark);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.95rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.1);
+        }
+
+        /* 城市输入框样式 */
+        .city-input {
+            width: 100%;
+            max-width: 300px;
+        }
+
+        .form-help {
+            margin-top: 8px;
+            font-size: 0.85rem;
+            color: var(--secondary);
+        }
+
+        .config-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .purposes-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-desc {
+            color: var(--secondary);
+            margin: 0;
+        }
+
+        .purposes-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .purpose-item {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--light);
+            transition: all 0.2s;
+            cursor: move;
+            position: relative;
+        }
+
+        .purpose-item:hover {
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .purpose-item.drag-over-top::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--primary);
+            border-radius: 2px;
+            z-index: 10;
+        }
+
+        .purpose-item.drag-over-bottom::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--primary);
+            border-radius: 2px;
+            z-index: 10;
+        }
+
+        .purpose-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .drag-handle {
+            color: #999;
+            cursor: grab;
+            padding: 4px;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+
+        .drag-handle:hover {
+            opacity: 1;
+            color: var(--primary);
+        }
+
+        .purpose-item.dragging {
+            opacity: 0.5;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+
+        .purpose-name {
+            font-weight: 500;
+            color: var(--dark);
+        }
+
+        .purpose-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-icon {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            color: var(--secondary);
+        }
+
+        .btn-icon:hover {
+            background: rgba(67, 97, 238, 0.1);
+            color: var(--primary);
+        }
+
+        .btn-icon.delete:hover {
+            background: rgba(231, 76, 60, 0.1);
+            color: var(--danger);
+        }
+
+        .purpose-edit {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .purpose-edit input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 0.95rem;
+        }
+
+        .purpose-edit input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .edit-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .btn-small {
+            padding: 6px 8px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .btn-save {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-save:hover {
+            background: #218838;
+        }
+
+        .btn-cancel {
+            background: var(--light);
+            color: var(--secondary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-cancel:hover {
+            background: #e9ecef;
+        }
+
+        /* 旅游偏好管理样式 */
+        .preferences-header {
+            margin-bottom: 20px;
+        }
+
+        .preference-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 0;
+        }
+
+        .preference-tab {
+            position: relative; /* 为删除按钮提供定位基础 */
+            padding: 12px 25px 12px 20px; /* 右边减少padding，为右上角按钮预留空间 */
+            border: none;
+            background: transparent;
+            color: var(--secondary);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+            font-weight: 500;
+            text-align: left; /* 文本左对齐 */
+        }
+
+        .preference-tab:hover {
+            color: var(--primary);
+            background: rgba(67, 97, 238, 0.05);
+        }
+
+        .preference-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            background: rgba(67, 97, 238, 0.1);
+        }
+
+        .preference-tab i {
+            margin-right: 8px;
+        }
+
+        .preference-content {
+            position: relative;
+        }
+
+        .preference-panel {
+            display: none;
+        }
+
+        .preference-panel.active {
+            display: block;
+        }
+
+        .preference-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .preference-panel-header h4 {
+            margin: 0;
+            color: var(--dark);
+            font-size: 1.1rem;
+        }
+
+        .preferences-list {
+            min-height: 200px;
+        }
+
+        /* 重用旅行目的的样式但针对偏好项做调整 */
+        .preference-item {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .preference-item:hover {
+            border-color: var(--primary-light);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .preference-item.dragging {
+            opacity: 0.5;
+        }
+
+        .preference-item.drag-over-top::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--primary);
+            border-radius: 2px;
+            z-index: 10;
+        }
+
+        .preference-item.drag-over-bottom::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--primary);
+            border-radius: 2px;
+            z-index: 10;
+        }
+
+        .preference-content-wrapper {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+
+        .preference-drag-handle {
+            margin-right: 12px;
+            color: var(--secondary);
+            cursor: move;
+        }
+
+        .preference-name {
+            flex: 1;
+            font-weight: 500;
+            color: var(--dark);
+        }
+
+        .preference-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .preference-edit {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .preference-edit input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 0.95rem;
+        }
+
+        .preference-edit input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* 自定义输入项编辑样式 */
+        .custom-input-edit-mode {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .edit-field {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .edit-field label {
+            min-width: 70px;
+            font-size: 0.9rem;
+            color: var(--secondary);
+            font-weight: 500;
+        }
+
+        .edit-field input {
+            flex: 1;
+            padding: 6px 10px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .edit-field input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.1);
+        }
+
+        /* 占位符编辑模式样式 */
+        .placeholder-edit-mode {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .placeholder-edit-mode .preference-name {
+            font-weight: 500;
+            color: var(--dark);
+            margin-bottom: 4px;
+        }
+
+        /* 新增类别按钮样式 */
+        .add-category-tab {
+            background: var(--primary) !important;
+            color: white !important;
+            border: 1px solid var(--primary) !important;
+        }
+
+        .add-category-tab:hover {
+            background: var(--primary-dark) !important;
+        }
+
+        /* 删除类别按钮样式 */
+        .delete-category-btn {
+            position: absolute;
+            right: 0px;
+            top: 5px;
+            background: transparent;
+            border: none;
+            color: #999;
+            font-size: 11px;
+            cursor: pointer;
+            padding: 2px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            line-height: 1;
+        }
+
+        .preference-tab:hover .delete-category-btn {
+            opacity: 1;
+        }
+
+        .delete-category-btn:hover {
+            color: #e74c3c;
+        }
+
+        .preference-tab {
+            position: relative;
+            padding-right: 25px; /* 只为删除按钮留出空间 */
+        }
+
+        /* 删除类别按钮样式调整 */
+        .delete-category-btn {
+            position: absolute;
+            right: 2px;
+            top: 5px;
+            background: transparent;
+            border: none;
+            color: #999;
+            font-size: 11px;
+            cursor: pointer;
+            padding: 2px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            line-height: 1;
+        }
+
+        .preference-tab:hover .delete-category-btn {
+            opacity: 1;
+        }
+
+        .delete-category-btn:hover {
+            color: #e74c3c;
+        }
+
+        /* 图标选择器模态框样式 */
+        .icon-selector-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .icon-selector-content {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .icon-selector-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .icon-selector-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .icon-selector-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        .icon-selector-close:hover {
+            background: #f5f5f5;
+        }
+
+        .icon-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .icon-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: white;
+        }
+
+        .icon-option:hover {
+            border-color: var(--primary);
+            background: #f8f9ff;
+            transform: translateY(-2px);
+        }
+
+        .icon-option.selected {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: white;
+        }
+
+        .icon-option i {
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+
+        .icon-option .icon-name {
+            font-size: 10px;
+            text-align: center;
+            word-break: break-all;
+        }
+
+        .icon-selector-footer {
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .icon-selector-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .icon-selector-btn.cancel {
+            background: #f8f9fa;
+            color: #6c757d;
+            border: 1px solid #dee2e6;
+        }
+
+        .icon-selector-btn.cancel:hover {
+            background: #e9ecef;
+        }
+
+        .icon-selector-btn.confirm {
+            background: var(--primary);
+            color: white;
+        }
+
+        .icon-selector-btn.confirm:hover {
+            background: #364fc7;
+        }
+
+        /* 更换图标按钮特定样式 */
+        .upload-btn.icon-btn {
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+            color: white;
+            border: none;
+        }
+
+        .upload-btn.icon-btn:hover {
+            background: linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+        }
+
+        .upload-btn.icon-btn i {
+            color: white;
+        }
+
+        /* 模态框样式 */
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: var(--dark);
+            font-size: 1.3rem;
+        }
+
+        .close {
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--secondary);
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .close:hover {
+            color: var(--dark);
+        }
+
+        .modal-body {
+            padding: 0 24px 20px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            padding: 20px 24px;
+            border-top: 1px solid var(--border);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--dark);
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.1);
+        }
+
+        .form-group small {
+            display: block;
+            margin-top: 4px;
+            color: var(--secondary);
+            font-size: 12px;
+        }
+
+        .required {
+            color: #dc3545;
+        }
+
+        .btn-primary, .btn-secondary {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background: var(--light);
+            color: var(--dark);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: #e9ecef;
+        }
+
+        /* 类别删除按钮样式 */
+        .category-delete-btn {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #ff4757;
+            color: white;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            opacity: 0;
+            transform: scale(0.8);
+            box-shadow: 0 2px 4px rgba(255, 71, 87, 0.3);
+            border: none;
+            outline: none;
+            line-height: 1;
+        }
+
+        .preference-tab:hover .category-delete-btn {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .category-delete-btn:hover {
+            background: #ff3742;
+            transform: scale(1.1);
+            box-shadow: 0 3px 8px rgba(255, 71, 87, 0.4);
+        }
+
+        .category-delete-btn i {
+            font-size: 8px;
+            line-height: 1;
+            margin: 0;
+            padding: 0;
+            display: block;
+        }
+
+        /* 自定义输入项样式 */
+        .custom-input-placeholder {
+            margin-left: 8px;
+            font-size: 0.85rem;
+            color: var(--secondary);
+            font-style: italic;
+        }
+
+        .preference-name {
+            flex: 1;
+            font-weight: 500;
+            color: var(--dark);
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- 侧边导航 -->
+        <div class="sidebar">
+            <div class="logo">
+                <h1>智慧旅游管理平台</h1>
+            </div>
+            <div class="nav-links">
+                <div class="nav-item" onclick="navigateTo('config')">
+                    <i class="fas fa-cog"></i>
+                    <span>基本设置</span>
+                </div>
+                
+                <div class="nav-item active" onclick="navigateTo('documents')">
+                    <i class="fas fa-file-alt"></i>
+                    <span>文档管理</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主内容区 -->
+        <div class="main-content">
+            <div class="header">
+                <h2>文档管理</h2>
+                <div class="account-menu">
+                    <button class="account-icon" id="accountIcon">
+                        <i class="fas fa-user-circle"></i>
+                    </button>
+                    <div class="dropdown-menu" id="dropdownMenu">
+                        <a href="#" id="changePassword">修改密码</a>
+                        <a href="#" id="logout">退出登录</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 文档管理页面 -->
+            <div id="documents-page" class="page-content">
+                <!-- 上传区域 -->
+                <section class="upload-section">
+                    <div class="upload-area" id="fileDropArea">
+                        <h3>上传新文档</h3>
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>将文件拖放到这里或点击选择文件</p>
+                        <p class="upload-note">支持格式：PDF, DOCX, MD, JSON, XLSX</p>
+                        <input type="file" id="fileInput" name="file" accept=".pdf,.docx,.md,.json,.xlsx" class="file-input">
+                    </div>
+
+                    <div class="index-area">
+                        <div class="index-content" id="indexContent">
+                            <div class="empty-index-state">
+                                <i class="fas fa-database"></i>
+                                <p>暂无索引缓存</p>
+                            </div>
+                        </div>
+                        <div class="index-info" style="display: none;">
+                            <div class="index-details">
+                                <p class="cache-file"><i class="fas fa-file-code"></i> <span id="cacheFileName"></span></p>
+                                <p class="cache-time"><i class="far fa-clock"></i> <span id="cacheTime"></span></p>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center;">
+                            <button class="upload-btn" id="generateIndex">生成索引</button>
+                            <div class="index-status" id="indexStatus"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 文档列表 -->
+                <section class="documents-section">
+                    <div class="section-header">
+                        <h3>已上传文档</h3>
+                    </div>
+                    <div class="documents-list" id="documentsList"></div>
+                </section>
+            </div>
+
+            <!-- 基本设置页面 -->
+            <div id="config-page" class="page-content" style="display: none;">
+                <!-- 城市配置卡片 -->
+                <div class="card">
+                    <h3><i class="fas fa-map-marker-alt"></i> 旅游城市</h3>
+                    <div class="config-section">
+                        <div class="form-group">
+                            <label for="cityInput">当前城市</label>
+                            <input type="text" id="cityInput" placeholder="请输入城市名称" class="form-input city-input" onkeypress="if(event.key==='Enter') saveCityConfig()">
+                            <p class="form-help">输入应用的目标城市，将影响所有相关页面显示</p>
+                        </div>
+                        <div class="config-actions">
+                            <button type="button" id="saveCityBtn" class="upload-btn">
+                                <i class="fas fa-save"></i> 保存设置
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 旅行目的配置卡片 -->
+                <div class="card">
+                    <h3><i class="fas fa-compass"></i> 旅行目的</h3>
+                    <div class="config-section">
+                        <div class="purposes-header">
+                            <p class="section-desc">管理用户可选择的旅行目的选项</p>
+                            <button type="button" id="addPurposeBtn" class="upload-btn">
+                                <i class="fas fa-plus"></i> 添加目的
+                            </button>
+                        </div>
+                        
+                        <div class="purposes-list" id="purposesList">
+                            <!-- 旅行目的列表将通过JavaScript动态生成 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 旅游偏好配置卡片 -->
+                <div class="card">
+                    <h3><i class="fas fa-heart"></i> 旅游偏好</h3>
+                    <div class="config-section">
+                        <div class="preferences-header">
+                            <p class="section-desc">管理用户可选择的旅游偏好选项，分为四个类别</p>
+                        </div>
+                        
+                        <!-- 偏好类别标签 -->
+                        <div class="preference-tabs">
+                            <!-- 标签将通过JavaScript动态生成 -->
+                            <button class="preference-tab add-category-tab" onclick="showAddCategoryDialog()">
+                                <i class="fas fa-plus"></i> 新增类别
+                            </button>
+                        </div>
+
+                        <!-- 偏好管理内容区 -->
+                        <div class="preference-content">
+                            <!-- 面板将通过JavaScript动态生成 -->
+                        </div>
+                                </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div> <!-- /.admin-container -->
+
+    <!-- 新增偏好类别对话框 -->
+    <div id="addCategoryModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>新增偏好类别</h3>
+                <span class="close" onclick="hideAddCategoryDialog()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="categoryName">类别名称 <span class="required">*</span></label>
+                    <input type="text" id="categoryName" placeholder="例如: 预算范围">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="hideAddCategoryDialog()">取消</button>
+                <button type="button" class="btn-primary" onclick="addNewCategory()">添加类别</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 导航功能
+        function navigateTo(page) {
+            // 移除所有导航项的active类
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // 为当前点击的导航项添加active类
+            event.target.closest('.nav-item').classList.add('active');
+            
+            // 隐藏所有页面内容
+            document.querySelectorAll('.page-content').forEach(content => {
+                content.style.display = 'none';
+            });
+            
+            // 根据不同页面显示对应内容
+            switch(page) {
+                case 'documents': {
+                    const docPage = document.getElementById('documents-page');
+                    if (docPage) docPage.style.display = 'block';
+                    document.querySelector('.header h2').textContent = '文档管理';
+                    break;
+                }
+                case 'config': {
+                    const cfgPage = document.getElementById('config-page');
+                    if (cfgPage) cfgPage.style.display = 'block';
+                    document.querySelector('.header h2').textContent = '基本设置';
+                    loadConfigData();
+                    break;
+                }
+                default:
+                    console.log('Unknown page:', page);
+            }
+        }
+
+        // 检查登录状态
+        function checkLogin() {
+            const isLoggedIn = localStorage.getItem('isLoggedIn');
+            if (!isLoggedIn) {
+                window.location.href = '/login';
+            }
+        }
+
+        // 在页面加载时检查登录状态
+        document.addEventListener('DOMContentLoaded', checkLogin);
+
+        // DOM 元素
+        const uploadForm = document.getElementById('uploadForm');
+        const fileInput = document.getElementById('fileInput');
+        const fileDropArea = document.getElementById('fileDropArea');
+        const generateIndexButton = document.getElementById('generateIndex');
+        const documentsList = document.getElementById('documentsList');
+        // 使用相对路径，自动适配当前端口
+        const API_BASE_URL = '/api';
+
+        // 文件拖放上传逻辑 - 改进版
+        function setupDragAndDrop() {
+            
+            // 防止整个页面的默认拖拽行为
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                document.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            // 拖拽进入和悬停
+            fileDropArea.addEventListener('dragenter', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Drag enter'); // 调试信息
+                fileDropArea.classList.add('dragover');
+            });
+
+            fileDropArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Drag over'); // 调试信息
+                fileDropArea.classList.add('dragover');
+            });
+
+            // 拖拽离开
+            fileDropArea.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                fileDropArea.classList.remove('dragover');
+            });
+
+            // 文件放下
+            fileDropArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                fileDropArea.classList.remove('dragover');
+                
+                const files = e.dataTransfer.files;
+                
+                if (files.length > 0) {
+                    handleFiles(files);
+                }
+            });
+        }
+
+        // 确保DOM加载完成后初始化拖拽功能
+        document.addEventListener('DOMContentLoaded', function() {
+            setupDragAndDrop();
+        });
+
+
+
+        function handleFiles(files) {
+            const file = files[0];
+            
+            // 检查文件类型
+            const allowedTypes = ['.pdf', '.docx', '.md', '.json', '.xlsx'];
+            const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+            
+            if (!allowedTypes.includes(fileExtension)) {
+                showNotification('error', `不支持的文件类型: ${fileExtension}`);
+                return;
+            }
+            
+            // 创建FormData并上传
+            uploadFileDirectly(file);
+        }
+
+        fileDropArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                uploadFiles();
+            }
+        });
+
+        // 直接上传文件函数（用于拖拽上传）
+        async function uploadFileDirectly(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+            fileDropArea.classList.add('uploading');
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    showNotification('success', `文档上传成功: ${data.filename}`);
+                    setTimeout(() => {
+                        loadDocuments();
+                    }, 500);
+                } else if (response.status === 401) {
+                    showNotification('error', '未登录，请重新登录');
+                    window.location.href = '/login';
+                } else {
+                    showNotification('error', `上传失败: ${data.msg}`);
+                }
+            } catch (error) {
+                console.error('Upload error:', error);
+                showNotification('error', `上传出错: ${error.message}`);
+            } finally {
+                fileDropArea.classList.remove('uploading');
+            }
+        }
+
+        // 上传文件函数（用于点击上传）
+        async function uploadFiles() {
+            const formData = new FormData();
+            const files = fileInput.files;
+            if (files.length === 0) {
+                showNotification('error', '请选择要上传的文件');
+                return;
+            }
+            
+            formData.append('file', files[0]);
+            fileDropArea.classList.add('uploading');
+
+            try {
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'include'  // 关键，带 cookie！
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    showNotification('success', `文档上传成功: ${data.filename}`);
+                    setTimeout(() => {
+                        loadDocuments();
+                    }, 500);
+                } else if (response.status === 401) {
+                    showNotification('error', '未登录，请重新登录');
+                    window.location.href = '/login';
+                } else {
+                    showNotification('error', `上传失败: ${data.msg}`);
+                }
+            } catch (error) {
+                console.error('Upload error:', error);
+                showNotification('error', `上传出错: ${error.message}`);
+            } finally {
+                fileDropArea.classList.remove('uploading');
+                fileInput.value = ''; // 清空输入框，允许重复上传相同文件
+            }
+        }
+
+        // 检查索引状态
+        async function checkIndexStatus() {
+            try {
+                const response = await fetch('/api/index_status', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                const indexContent = document.getElementById('indexContent');
+                const indexInfo = document.querySelector('.index-info');
+
+                if (response.ok && data.hasCache) {
+                    indexContent.style.display = 'none';
+                    indexInfo.style.display = 'block';
+                    document.getElementById('cacheFileName').textContent = data.cacheName;
+                    document.getElementById('cacheTime').textContent = data.cacheTime;
+                } else {
+                    indexContent.style.display = 'block';
+                    indexInfo.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('检查索引状态出错:', error);
+            }
+        }
+
+        // 生成索引按钮点击事件
+        generateIndexButton.addEventListener('click', async () => {
+            generateIndexButton.disabled = true;
+            generateIndexButton.textContent = '生成中...';
+            const statusElement = document.getElementById('indexStatus');
+            
+            // 显示模型加载提示
+            statusElement.textContent = '正在加载嵌入模型，首次加载可能需要较长时间...';
+            statusElement.classList.remove('indexed', 'not-indexed');
+
+            try {
+                const response = await fetch('/api/generate_index', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    statusElement.textContent = '✅ 向量索引生成成功！';
+                    statusElement.classList.add('indexed');
+                    statusElement.classList.remove('not-indexed');
+                    // 更新索引状态显示
+                    await checkIndexStatus();
+                    showNotification('success', '向量索引生成成功！');
+                } else {
+                    statusElement.textContent = `❌ 生成失败: ${data.msg}`;
+                    statusElement.classList.add('not-indexed');
+                    statusElement.classList.remove('indexed');
+                    showNotification('error', `索引生成失败: ${data.msg}`);
+                }
+            } catch (error) {
+                statusElement.textContent = `❌ 生成出错: ${error.message}`;
+                statusElement.classList.add('not-indexed');
+                statusElement.classList.remove('indexed');
+                showNotification('error', `网络错误: ${error.message}`);
+            } finally {
+                generateIndexButton.disabled = false;
+                generateIndexButton.textContent = '生成索引';
+                // Hide the status message after 5 seconds (longer for user to read)
+                setTimeout(() => {
+                    statusElement.textContent = '';
+                    statusElement.classList.remove('indexed', 'not-indexed');
+                }, 5000);
+            }
+        });
+
+        // 页面加载时检查索引状态
+        document.addEventListener('DOMContentLoaded', () => {
+            checkLogin();
+            loadDocuments();
+            checkIndexStatus();
+        });
+
+        // 加载文档列表
+        async function loadDocuments() {
+            try {
+                const response = await fetch('/api/files', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    const docs = data.files || [];
+                    documentsList.innerHTML = '';
+                    if (docs.length === 0) {
+                        documentsList.innerHTML = `
+                            <div class="empty-state">
+                                <i class="fas fa-file-alt"></i>
+                                <p>暂无文档，请上传新文档</p>
+                            </div>
+                        `;
+                    } else {
+                        docs.forEach(doc => {
+                            const docElement = document.createElement('div');
+                            docElement.className = 'document-item';
+                            docElement.innerHTML = `
+                                <div class="doc-icon">
+                                    <i class="fas fa-file-alt"></i>
+                                </div>
+                                <div class="doc-info">
+                                    <div class="doc-header">
+                                        <h4>${doc.name}</h4>
+                                    </div>
+                                    <div class="upload-time">
+                                        <i class="far fa-clock"></i>
+                                        ${doc.uploadTime}
+                                    </div>
+                                    <div class="doc-description">
+                                        <div class="description-display" id="desc-display-${encodeURIComponent(doc.name)}">
+                                            <div class="description-label">
+                                                <i class="fas fa-sticky-note"></i>
+                                                文档描述
+                                            </div>
+                                            <div class="description-text">${doc.description || '暂无描述'}</div>
+                                        </div>
+                                        <button class="edit-desc-btn" id="edit-btn-${encodeURIComponent(doc.name)}" onclick="editDescription('${encodeURIComponent(doc.name)}')">
+                                            <i class="fas fa-edit"></i>
+                                            编辑描述
+                                        </button>
+                                        <div class="description-edit" id="desc-edit-${encodeURIComponent(doc.name)}" style="display: none;">
+                                            <textarea class="description-input" placeholder="请输入文档描述...">${doc.description || ''}</textarea>
+                                            <div class="edit-buttons">
+                                                <button class="save-desc-btn" onclick="saveDescription('${encodeURIComponent(doc.name)}')">
+                                                    <i class="fas fa-check"></i> 保存
+                                                </button>
+                                                <button class="cancel-desc-btn" onclick="cancelEditDescription('${encodeURIComponent(doc.name)}')">
+                                                    <i class="fas fa-times"></i> 取消
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="doc-actions">
+                                    <button class="delete-btn" data-filename="${doc.name}">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
+                            `;
+                            documentsList.appendChild(docElement);
+                        });
+                        // 添加删除按钮事件监听
+                        document.querySelectorAll('.delete-btn').forEach(btn => {
+                            btn.addEventListener('click', async (e) => {
+                                const filename = e.currentTarget.getAttribute('data-filename');
+                                if (confirm(`确定要删除文档 ${filename} 吗？此操作不可恢复。`)) {
+                                    try {
+                                        const response = await fetch(`/api/delete/${filename}`, {
+                                            method: 'DELETE',
+                                            headers: {
+                                                'Content-Type': 'application/json'
+                                            }
+                                        });
+                                        const data = await response.json();
+                                        if (response.ok) {
+                                            showNotification('success', `文档 ${filename} 删除成功`);
+                                            loadDocuments();
+                                        } else {
+                                            showNotification('error', `删除失败: ${data.msg}`);
+                                        }
+                                    } catch (error) {
+                                        showNotification('error', `删除出错: ${error.message}`);
+                                    }
+                                }
+                            });
+                        });
+                    }
+                } else {
+                    showNotification('error', `获取文档列表失败: ${data.msg}`);
+                }
+            } catch (error) {
+                showNotification('error', `获取文档列表出错: ${error.message}`);
+            }
+        }
+
+        // 显示通知
+        function showNotification(type, message) {
+            const container = document.getElementById('notificationContainer');
+            if (!container) {
+                const newContainer = document.createElement('div');
+                newContainer.id = 'notificationContainer';
+                newContainer.className = 'notification-container';
+                document.body.appendChild(newContainer);
+            }
+
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'warning' ? 'fa-exclamation-triangle' : 'fa-exclamation-circle'}"></i>
+                <span>${message}</span>
+            `;
+
+            document.getElementById('notificationContainer').appendChild(notification);
+
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 100);
+
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }, 3000); // 显示3秒
+        }
+
+        // 编辑文档描述
+        function editDescription(encodedFilename) {
+            const filename = decodeURIComponent(encodedFilename);
+            const displayDiv = document.getElementById(`desc-display-${encodedFilename}`);
+            const editDiv = document.getElementById(`desc-edit-${encodedFilename}`);
+            const editBtn = document.getElementById(`edit-btn-${encodedFilename}`);
+            
+            displayDiv.style.display = 'none';
+            editDiv.style.display = 'block';
+            editBtn.style.display = 'none';  // 隐藏编辑按钮
+            
+            // 聚焦到输入框
+            const textarea = editDiv.querySelector('.description-input');
+            textarea.focus();
+        }
+
+        // 取消编辑文档描述
+        function cancelEditDescription(encodedFilename) {
+            const displayDiv = document.getElementById(`desc-display-${encodedFilename}`);
+            const editDiv = document.getElementById(`desc-edit-${encodedFilename}`);
+            const editBtn = document.getElementById(`edit-btn-${encodedFilename}`);
+            
+            displayDiv.style.display = 'block';
+            editDiv.style.display = 'none';
+            editBtn.style.display = 'flex';  // 显示编辑按钮
+        }
+
+        // 保存文档描述
+        async function saveDescription(encodedFilename) {
+            const filename = decodeURIComponent(encodedFilename);
+            const editDiv = document.getElementById(`desc-edit-${encodedFilename}`);
+            const textarea = editDiv.querySelector('.description-input');
+            const newDescription = textarea.value.trim();
+            
+            try {
+                const response = await fetch(`/api/doc_description/${encodeURIComponent(filename)}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        description: newDescription
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // 更新显示的描述
+                    const displayDiv = document.getElementById(`desc-display-${encodedFilename}`);
+                    const descriptionText = displayDiv.querySelector('.description-text');
+                    descriptionText.textContent = newDescription || '暂无描述';
+                    
+                    // 切换回显示模式并显示编辑按钮
+                    cancelEditDescription(encodedFilename);
+                    
+                    showNotification('success', '文档描述更新成功');
+                } else {
+                    showNotification('error', `更新失败: ${data.msg || data.message}`);
+                }
+            } catch (error) {
+                showNotification('error', `更新出错: ${error.message}`);
+            }
+        }
+
+        // 页面加载时获取文档列表
+        document.addEventListener('DOMContentLoaded', loadDocuments);
+
+        // 账户菜单功能
+        document.getElementById('logout').addEventListener('click', function(e) {
+            e.preventDefault();
+            localStorage.removeItem('isLoggedIn');
+            window.location.href = '/login';
+        });
+
+        document.getElementById('changePassword').addEventListener('click', function(e) {
+            e.preventDefault();
+            alert('修改密码功能暂未实现，请联系管理员。');
+            // 未来可以在这里添加修改密码的逻辑
+        });
+
+        // 点击账户图标时显示/隐藏下拉菜单
+        document.getElementById('accountIcon').addEventListener('click', function() {
+            const dropdown = document.getElementById('dropdownMenu');
+            if (dropdown.style.display === 'block') {
+                dropdown.style.display = 'none';
+            } else {
+                dropdown.style.display = 'block';
+            }
+        });
+
+        // 点击页面其他地方时关闭下拉菜单
+        document.addEventListener('click', function(e) {
+            const accountMenu = document.querySelector('.account-menu');
+            if (!accountMenu.contains(e.target)) {
+                document.getElementById('dropdownMenu').style.display = 'none';
+            }
+        });
+
+        // =================== 配置页面功能 ===================
+        
+        // 默认旅行目的数据（从index.html中提取）
+        let travelPurposes = [
+            { id: 1, name: '休闲度假', icon: 'fa-umbrella-beach' },
+            { id: 2, name: '亲子游玩', icon: 'fa-child' },
+            { id: 3, name: '美食探索', icon: 'fa-utensils' },
+            { id: 4, name: '文化体验', icon: 'fa-landmark' },
+            { id: 5, name: '看演唱会', icon: 'fa-music' },
+            { id: 6, name: '免税购物', icon: 'fa-shopping-bag' },
+            { id: 7, name: '村落探索', icon: 'fa-home' },
+            { id: 8, name: '露营', icon: 'fa-campground' },
+            { id: 9, name: '赶海', icon: 'fa-water' }
+        ];
+
+        // 加载配置数据
+        async function loadConfigData() {
+            try {
+                // 先尝试从后端 API 加载城市配置
+                const response = await fetch('/api/config/city', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                let currentCity = '海口';  // 默认值
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.city_config) {
+                        currentCity = data.city_config.name;
+                        console.log('从后端加载城市配置成功:', currentCity);
+                    } else {
+                        // API 返回失败，使用默认值
+                        currentCity = '海口';
+                        console.warn('API返回数据格式错误:', data);
+                    }
+                } else {
+                    // API 请求失败，使用默认值
+                    currentCity = '海口';
+                    console.warn('从后端加载城市配置失败，使用默认值:', response.status);
+                }
+
+                const cityInput = document.getElementById('cityInput');
+                if (cityInput) cityInput.value = currentCity;
+
+                // 加载旅行目的数据
+                loadTravelPurposes();
+                renderPurposesList();
+                
+                // 加载旅游偏好数据
+                await loadTravelPreferences();
+                renderPreferencesLists();
+            } catch (error) {
+                console.error('加载配置数据失败:', error);
+                // 出错时使用默认值
+                let currentCity = '海口';
+                const cityInput = document.getElementById('cityInput');
+                if (cityInput) cityInput.value = currentCity;
+                loadTravelPurposes();
+                renderPurposesList();
+                
+                // 加载默认旅游偏好
+                await loadTravelPreferences();
+                renderPreferencesLists();
+            }
+        }
+
+        // 加载旅行目的数据
+        async function loadTravelPurposes() {
+            try {
+                // 首先尝试从后端API加载
+                const response = await fetch('/api/config/travel_purposes', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.travel_purposes) {
+                        travelPurposes = data.travel_purposes;
+                        return;
+                    }
+                }
+                
+                // API失败时使用默认配置
+                travelPurposes = getDefaultTravelPurposes();
+            } catch (error) {
+                console.error('加载旅行目的数据失败:', error);
+                // 使用默认配置
+                travelPurposes = getDefaultTravelPurposes();
+            }
+        }
+
+        // 生成默认旅行目的配置
+        function getDefaultTravelPurposes() {
+            return [
+                { name: "休闲度假" },
+                { name: "亲子游玩" },
+                { name: "美食探索" },
+                { name: "文化体验" },
+                { name: "看演唱会" },
+                { name: "露营" },
+                { name: "赶海" }
+            ];
+        }
+
+        // 保存旅行目的数据到后端
+        async function saveTravelPurposesToBackend(purposes) {
+            try {
+                const response = await fetch('/api/config/travel_purposes', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        purposes: purposes
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        console.log('旅行目的配置已同步到后端');
+                        return true;
+                    }
+                }
+                return false;
+            } catch (error) {
+                console.error('保存旅行目的到后端失败:', error);
+                return false;
+            }
+        }
+
+        // 保存旅行目的数据到服务器
+        async function saveTravelPurposes() {
+            try {
+                // 保存到后端
+                const success = await saveTravelPurposesToBackend(travelPurposes);
+                
+                if (success) {
+                    console.log('旅行目的配置已保存到服务器');
+                } else {
+                    console.error('保存旅行目的配置到服务器失败');
+                }
+            } catch (error) {
+                console.error('保存旅行目的数据失败:', error);
+            }
+        }
+
+        // 更新首页的旅行目的选项（服务器端）
+        function updateIndexPagePurposes() {
+            console.log('旅行目的配置已更新到服务器，首页刷新后将显示最新配置');
+        }
+
+        // 渲染旅行目的列表
+        function renderPurposesList() {
+            const purposesList = document.getElementById('purposesList');
+            if (!purposesList) return;
+            
+            purposesList.innerHTML = '';
+
+            travelPurposes.forEach((purpose, index) => {
+                const purposeItem = document.createElement('div');
+                purposeItem.className = 'purpose-item';
+                purposeItem.dataset.id = purpose.id;
+                purposeItem.dataset.index = index;
+                
+                // 添加拖拽属性
+                purposeItem.draggable = true;
+                purposeItem.addEventListener('dragstart', handleDragStart);
+                purposeItem.addEventListener('dragover', handleDragOver);
+                purposeItem.addEventListener('drop', handleDrop);
+                purposeItem.addEventListener('dragend', handleDragEnd);
+
+                purposeItem.innerHTML = `
+                    <div class="purpose-content">
+                        <div class="drag-handle" title="拖拽排序">
+                            <i class="fas fa-grip-vertical"></i>
+                        </div>
+                        <span class="purpose-name">${purpose.name}</span>
+                    </div>
+                    <div class="purpose-actions">
+                        <button class="btn-icon" onclick="editPurpose(${purpose.id})" title="编辑">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn-icon delete" onclick="deletePurpose(${purpose.id})" title="删除">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                `;
+
+                purposesList.appendChild(purposeItem);
+            });
+        }
+
+        // 拖拽相关变量
+        let draggedElement = null;
+        let draggedIndex = null;
+
+        // 拖拽开始
+        function handleDragStart(e) {
+            draggedElement = this;
+            draggedIndex = parseInt(this.dataset.index);
+            
+            this.style.opacity = '0.5';
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', this.outerHTML);
+            
+            // 禁用其他交互
+            this.querySelectorAll('button').forEach(btn => btn.style.pointerEvents = 'none');
+        }
+
+        // 拖拽悬停
+        function handleDragOver(e) {
+            if (e.preventDefault) {
+                e.preventDefault();
+            }
+            
+            e.dataTransfer.dropEffect = 'move';
+            
+            // 添加视觉反馈
+            const rect = this.getBoundingClientRect();
+            const midY = rect.top + rect.height / 2;
+            
+            if (e.clientY < midY) {
+                this.classList.add('drag-over-top');
+                this.classList.remove('drag-over-bottom');
+            } else {
+                this.classList.add('drag-over-bottom');
+                this.classList.remove('drag-over-top');
+            }
+            
+            return false;
+        }
+
+        // 放置处理
+        function handleDrop(e) {
+            if (e.stopPropagation) {
+                e.stopPropagation();
+            }
+
+            if (draggedElement !== this) {
+                const targetIndex = parseInt(this.dataset.index);
+                const rect = this.getBoundingClientRect();
+                const midY = rect.top + rect.height / 2;
+                
+                // 确定插入位置
+                let insertIndex;
+                if (e.clientY < midY) {
+                    insertIndex = targetIndex;
+                } else {
+                    insertIndex = targetIndex + 1;
+                }
+                
+                // 调整索引（如果拖拽元素在目标前面）
+                if (draggedIndex < insertIndex) {
+                    insertIndex--;
+                }
+                
+                // 重新排序数组
+                const draggedItem = travelPurposes.splice(draggedIndex, 1)[0];
+                travelPurposes.splice(insertIndex, 0, draggedItem);
+                
+                // 重新渲染
+                renderPurposesList();
+                
+                // 保存到服务器
+                saveTravelPurposes();
+                
+                showNotification('success', '排序已更新，首页刷新后生效');
+            }
+
+            return false;
+        }
+
+        // 拖拽结束
+        function handleDragEnd(e) {
+            // 清理样式
+            document.querySelectorAll('.purpose-item').forEach(item => {
+                item.style.opacity = '';
+                item.classList.remove('drag-over-top', 'drag-over-bottom', 'dragging');
+                // 恢复按钮交互
+                item.querySelectorAll('button').forEach(btn => btn.style.pointerEvents = '');
+            });
+            
+            draggedElement = null;
+            draggedIndex = null;
+        }
+
+        // 偏好项拖拽相关变量
+        let draggedPreferenceElement = null;
+        let draggedPreferenceIndex = null;
+        let draggedPreferenceCategory = null;
+
+        // 偏好项拖拽开始
+        function handlePreferenceDragStart(e) {
+            draggedPreferenceElement = this;
+            draggedPreferenceIndex = parseInt(this.dataset.index);
+            draggedPreferenceCategory = this.dataset.category;
+            
+            this.style.opacity = '0.5';
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', this.outerHTML);
+            
+            // 禁用其他交互
+            this.querySelectorAll('button').forEach(btn => btn.style.pointerEvents = 'none');
+        }
+
+        // 偏好项拖拽悬停
+        function handlePreferenceDragOver(e) {
+            if (e.preventDefault) {
+                e.preventDefault();
+            }
+            
+            // 只允许同类别内拖拽
+            if (this.dataset.category !== draggedPreferenceCategory) {
+                return false;
+            }
+            
+            e.dataTransfer.dropEffect = 'move';
+            
+            // 添加视觉反馈
+            const rect = this.getBoundingClientRect();
+            const midY = rect.top + rect.height / 2;
+            
+            if (e.clientY < midY) {
+                this.classList.add('drag-over-top');
+                this.classList.remove('drag-over-bottom');
+            } else {
+                this.classList.add('drag-over-bottom');
+                this.classList.remove('drag-over-top');
+            }
+            
+            return false;
+        }
+
+        // 偏好项放置处理
+        function handlePreferenceDrop(e) {
+            if (e.stopPropagation) {
+                e.stopPropagation();
+            }
+
+            // 只允许同类别内拖拽
+            if (this.dataset.category !== draggedPreferenceCategory) {
+                return false;
+            }
+
+            if (draggedPreferenceElement !== this) {
+                const targetIndex = parseInt(this.dataset.index);
+                const rect = this.getBoundingClientRect();
+                const midY = rect.top + rect.height / 2;
+                
+                // 确定插入位置
+                let insertIndex;
+                if (e.clientY < midY) {
+                    insertIndex = targetIndex;
+                } else {
+                    insertIndex = targetIndex + 1;
+                }
+                
+                // 调整索引（如果拖拽元素在目标前面）
+                if (draggedPreferenceIndex < insertIndex) {
+                    insertIndex--;
+                }
+                
+                // 获取偏好数据（新格式）
+                const categoryItems = travelPreferences[draggedPreferenceCategory];
+                
+                if (categoryItems) {
+                    // 重新排序数组
+                    const draggedItem = categoryItems.splice(draggedPreferenceIndex, 1)[0];
+                    categoryItems.splice(insertIndex, 0, draggedItem);
+                    
+                    // 重新渲染该类别的偏好列表
+                    const listId = getCategoryListId(draggedPreferenceCategory);
+                    if (listId) {
+                        renderPreferenceList(draggedPreferenceCategory, listId);
+                    }
+                    
+                    // 保存到服务器
+                    saveTravelPreferences();
+                    
+                    showNotification('success', '偏好排序已更新');
+                }
+            }
+
+            return false;
+        }
+
+        // 偏好项拖拽结束
+        function handlePreferenceDragEnd(e) {
+            // 清理样式
+            document.querySelectorAll('.preference-item').forEach(item => {
+                item.style.opacity = '';
+                item.classList.remove('drag-over-top', 'drag-over-bottom', 'dragging');
+                // 恢复按钮交互
+                item.querySelectorAll('button').forEach(btn => btn.style.pointerEvents = '');
+            });
+            
+            draggedPreferenceElement = null;
+            draggedPreferenceIndex = null;
+            draggedPreferenceCategory = null;
+        }
+
+        // 根据类别获取对应的列表ID（动态生成）
+        function getCategoryListId(category) {
+            console.log(`🔍 [调试] 查找类别 "${category}" 的列表ID...`);
+            
+            // 动态生成列表ID，基于类别名称
+            const listId = category.replace(/\s+/g, '') + 'List';
+            console.log(`📋 [调试] 类别 "${category}" -> 列表ID: "${listId}"`);
+            
+            return listId;
+        }
+
+        // 保存城市配置
+        async function saveCityConfig() {
+            const city = document.getElementById('cityInput').value.trim();
+            const saveCityBtn = document.getElementById('saveCityBtn');
+            
+            if (!city) {
+                showNotification('error', '请输入城市名称');
+                return;
+            }
+
+            try {
+                // 显示加载状态
+                saveCityBtn.disabled = true;
+                saveCityBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 保存中...';
+                
+                // 首先尝试保存到后端 API
+                const response = await fetch('/api/config/city', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: city
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        // 后端保存成功
+                        showNotification('success', `城市已更改为：${city}，刷新首页即可看到效果`);
+                    } else {
+                        throw new Error(data.message || '后端保存失败');
+                    }
+                } else {
+                    throw new Error('服务器响应错误');
+                }
+                
+            } catch (error) {
+                console.error('保存城市配置出错:', error);
+                showNotification('error', '保存失败，请检查网络连接后重试');
+            } finally {
+                // 恢复按钮状态
+                saveCityBtn.disabled = false;
+                saveCityBtn.innerHTML = '<i class="fas fa-save"></i> 保存设置';
+            }
+        }
+
+        // 添加新的旅行目的
+        async function addNewPurpose() {
+            // 直接创建新的目的项，用户可以即时编辑
+            const newId = Math.max(...travelPurposes.map(p => p.id), 0) + 1;
+            const newPurpose = {
+                id: newId,
+                name: '新增旅游目的'
+            };
+
+            // 添加到本地数组
+            travelPurposes.push(newPurpose);
+            
+            // 重新渲染列表
+            renderPurposesList();
+            
+            // 自动进入编辑模式
+            setTimeout(() => {
+                editPurpose(newId);
+            }, 100);
+            
+            console.log('已创建新的旅行目的项，等待用户编辑');
+        }
+
+        // 编辑旅行目的
+        function editPurpose(id) {
+            const purpose = travelPurposes.find(p => p.id === id);
+            if (!purpose) return;
+
+            const purposeItem = document.querySelector(`[data-id="${id}"]`);
+            const purposeContent = purposeItem.querySelector('.purpose-content');
+            const purposeActions = purposeItem.querySelector('.purpose-actions');
+
+            // 创建编辑界面
+            purposeContent.innerHTML = `
+                <div class="purpose-edit">
+                    <input type="text" value="${purpose.name}" id="edit-input-${id}" 
+                           onkeypress="if(event.key==='Enter') savePurposeEdit(${id})"
+                           onkeydown="if(event.key==='Escape') cancelPurposeEdit(${id})">
+                </div>
+            `;
+
+            purposeActions.innerHTML = `
+                <div class="edit-actions">
+                    <button class="btn-small btn-save" onclick="savePurposeEdit(${id})">
+                        <i class="fas fa-check"></i>
+                    </button>
+                    <button class="btn-small btn-cancel" onclick="cancelPurposeEdit(${id})">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+
+            // 聚焦输入框
+            const input = document.getElementById(`edit-input-${id}`);
+            input.focus();
+            
+            // 如果是新创建的项，选中所有文本方便用户直接覆盖
+            if (purpose.name === '新增旅游目的') {
+                input.select();
+            }
+        }
+
+        // 保存旅行目的编辑
+        async function savePurposeEdit(id) {
+            const newName = document.getElementById(`edit-input-${id}`).value.trim();
+            if (!newName) {
+                showNotification('error', '名称不能为空');
+                return;
+            }
+
+            const purpose = travelPurposes.find(p => p.id === id);
+            if (!purpose) return;
+
+            const oldName = purpose.name;
+            const isNewPurpose = oldName === '新增旅游目的';
+            
+            try {
+                // 更新本地数据
+                purpose.name = newName;
+                
+                // 尝试同步到后端
+                const success = await saveTravelPurposesToBackend(travelPurposes);
+                
+                if (success) {
+                    renderPurposesList();
+                    
+                    if (isNewPurpose) {
+                        showNotification('success', `已添加旅行目的：${newName}，首页刷新后生效`);
+                    } else {
+                        showNotification('success', `已将"${oldName}"重命名为"${newName}"，首页刷新后生效`);
+                    }
+                } else {
+                    // 后端保存失败，恢复原始数据
+                    purpose.name = oldName;
+                    renderPurposesList();
+                    showNotification('error', '保存失败，请重试');
+                }
+            } catch (error) {
+                console.error('保存编辑失败:', error);
+                // 恢复原始名称
+                purpose.name = oldName;
+                renderPurposesList();
+                showNotification('error', '保存失败，请重试');
+            }
+        }
+
+        // 取消编辑
+        function cancelPurposeEdit(id) {
+            const purpose = travelPurposes.find(p => p.id === id);
+            
+            // 如果是新创建的目的项（名称为"新增旅游目的"），则删除它
+            if (purpose && purpose.name === '新增旅游目的') {
+                const index = travelPurposes.findIndex(p => p.id === id);
+                if (index > -1) {
+                    travelPurposes.splice(index, 1);
+                    console.log('已删除未保存的新增项');
+                }
+            }
+            
+            renderPurposesList();
+        }
+
+        // 删除旅行目的
+        async function deletePurpose(id) {
+            if (travelPurposes.length <= 2) {
+                showNotification('error', '至少需要保留2个旅行目的选项');
+                return;
+            }
+
+            const purpose = travelPurposes.find(p => p.id === id);
+            if (!purpose) return;
+
+            if (!confirm(`确定要删除"${purpose.name}"吗？`)) return;
+
+            try {
+                // 先从本地删除
+                const originalPurposes = [...travelPurposes];
+                travelPurposes = travelPurposes.filter(p => p.id !== id);
+                
+                // 尝试保存到后端
+                const success = await saveTravelPurposesToBackend(travelPurposes);
+                
+                if (success) {
+                    renderPurposesList();
+                    showNotification('success', `已删除旅行目的：${purpose.name}，首页刷新后生效`);
+                } else {
+                    // 恢复原始数据
+                    travelPurposes = originalPurposes;
+                    renderPurposesList();
+                    showNotification('error', '删除失败，请重试');
+                }
+                
+            } catch (error) {
+                console.error('删除旅行目的失败:', error);
+                showNotification('error', '删除失败，请重试');
+                showNotification('warning', `已删除旅行目的：${purpose.name} (仅从本地删除)`);
+            }
+        }
+
+        // 配置页面事件监听器初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOMContentLoaded fired!');
+            
+            // 根据默认视图设置初始显示页面
+            const defaultView = window.defaultView || 'documents';
+            console.log('Default view:', defaultView);
+            
+            // 设置初始页面
+            if (defaultView === 'settings') {
+                // 先移除所有active类
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                // 激活基本设置导航项
+                const configNavItem = document.querySelector('.nav-item[onclick*="config"]');
+                if (configNavItem) {
+                    configNavItem.classList.add('active');
+                }
+                // 显示基本设置页面
+                document.querySelectorAll('.page-content').forEach(content => {
+                    content.style.display = 'none';
+                });
+                const cfgPage = document.getElementById('config-page');
+                if (cfgPage) cfgPage.style.display = 'block';
+                document.querySelector('.header h2').textContent = '基本设置';
+                loadConfigData();
+            } else {
+                // 显示文档管理页面（默认）
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                const docsNavItem = document.querySelector('.nav-item[onclick*="documents"]');
+                if (docsNavItem) {
+                    docsNavItem.classList.add('active');
+                }
+                document.querySelectorAll('.page-content').forEach(content => {
+                    content.style.display = 'none';
+                });
+                const docPage = document.getElementById('documents-page');
+                if (docPage) docPage.style.display = 'block';
+                document.querySelector('.header h2').textContent = '文档管理';
+            }
+            
+            // 保存城市配置
+            const saveCityBtn = document.getElementById('saveCityBtn');
+            if (saveCityBtn) {
+                saveCityBtn.addEventListener('click', function() {
+                    saveCityConfig();
+                });
+            }
+            
+            // 城市输入框回车键事件
+            const cityInput = document.getElementById('cityInput');
+            if (cityInput) {
+                cityInput.addEventListener('keypress', function(event) {
+                    if (event.key === 'Enter') {
+                        saveCityConfig();
+                    }
+                });
+            }
+
+            // 添加旅行目的
+            const addPurposeBtn = document.getElementById('addPurposeBtn');
+            if (addPurposeBtn) {
+                addPurposeBtn.addEventListener('click', addNewPurpose);
+            }
+
+            // 初始化旅游偏好功能
+            console.log('🚀 [调试] 开始初始化旅游偏好功能...');
+            
+            // 加载旅游偏好数据
+            loadTravelPreferences().then(() => {
+                console.log('📊 [调试] 旅游偏好数据加载完成，开始渲染界面...');
+                renderPreferenceTabs();
+                renderPreferencesLists();
+                initializePreferenceTabs();
+            });
+        });
+
+        // =====================================
+        // 旅游偏好管理功能
+        // =====================================
+
+        // 旅游偏好数据（扁平化混合格式）
+        let travelPreferences = {};
+
+        // 初始化偏好标签切换
+        function initializePreferenceTabs() {
+            const tabs = document.querySelectorAll('.preference-tab:not(.add-category-tab)');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const category = this.dataset.category;
+                    if (category) {
+                        switchPreferenceTab(category);
+                    }
+                });
+            });
+        }
+
+        // 切换偏好标签
+        function switchPreferenceTab(category) {
+            // 更新标签状态
+            document.querySelectorAll('.preference-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            const activeTab = document.querySelector(`[data-category="${category}"]`);
+            if (activeTab) {
+                activeTab.classList.add('active');
+            }
+            
+            // 更新面板显示
+            document.querySelectorAll('.preference-panel').forEach(panel => {
+                panel.classList.remove('active');
+            });
+            const panelId = getCategoryPanelId(category);
+            const activePanel = document.getElementById(panelId);
+            if (activePanel) {
+                activePanel.classList.add('active');
+            }
+        }
+
+        // 加载旅游偏好数据
+        async function loadTravelPreferences() {
+            console.log('🔍 [调试] 开始加载旅游偏好数据...');
+            try {
+                // 首先尝试从后端API加载
+                console.log('📡 [调试] 正在向后端API请求数据...');
+                const response = await fetch('/api/config/travel_preferences', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                console.log(`📊 [调试] API响应状态: ${response.status} ${response.statusText}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('📥 [调试] 收到API响应数据:', data);
+                    
+                    if (data.success && data.travel_preferences) {
+                        travelPreferences = data.travel_preferences;
+                        console.log('✅ [调试] 成功加载旅游偏好数据:', travelPreferences);
+                        console.log('📋 [调试] 数据类别数量:', Object.keys(travelPreferences).length);
+                        
+                        // 输出每个类别的详细信息
+                        Object.keys(travelPreferences).forEach(category => {
+                            console.log(`📂 [调试] 类别 "${category}": ${travelPreferences[category].length} 个偏好项`);
+                        });
+                        
+                        return;
+                    } else {
+                        console.warn('⚠️ [调试] API返回成功但数据格式异常:', data);
+                    }
+                } else {
+                    console.error('❌ [调试] API请求失败:', response.status, response.statusText);
+                }
+                
+                // API失败时使用默认配置
+                console.log('🔄 [调试] 使用默认配置...');
+                travelPreferences = getDefaultTravelPreferences();
+                console.log('✅ [调试] 默认配置加载完成:', travelPreferences);
+            } catch (error) {
+                console.error('💥 [调试] 加载旅游偏好数据异常:', error);
+                // 使用默认配置
+                travelPreferences = getDefaultTravelPreferences();
+                console.log('🔄 [调试] 异常后使用默认配置:', travelPreferences);
+            }
+        }
+
+        // 生成默认旅游偏好配置（按文档规范的扁平化混合格式）
+        function getDefaultTravelPreferences() {
+            return {
+                住宿类型: [
+                    "经济型酒店",
+                    "商务酒店", 
+                    "度假酒店",
+                    "民宿客栈",
+                    "青年旅舍",
+                    {
+                        "type": "input",
+                        "name": "指定酒店品牌",
+                        "placeholder": "例如：全季、如家、汉庭"
+                    },
+                    {
+                        "type": "input", 
+                        "name": "特殊住宿需求",
+                        "placeholder": "例如：海景房、无烟房"
+                    }
+                ],
+                餐饮选择: [
+                    "海南特色菜",
+                    "海鲜大排档",
+                    "火锅烧烤",
+                    "快餐简餐",
+                    "精品餐厅",
+                    "街边小食",
+                    {
+                        "type": "input",
+                        "name": "指定餐厅",
+                        "placeholder": "例如：麦当劳、肯德基"
+                    },
+                    {
+                        "type": "input",
+                        "name": "饮食禁忌",
+                        "placeholder": "例如：不吃辣、素食"
+                    }
+                ],
+                出行方式: [
+                    "公共交通",
+                    "出租车网约车", 
+                    "自驾租车",
+                    "共享单车",
+                    "步行",
+                    {
+                        "type": "input",
+                        "name": "其他交通工具",
+                        "placeholder": "例如：摩托车、电动车"
+                    }
+                ],
+                特殊需求: [
+                    "无障碍设施",
+                    "儿童友好",
+                    "老人友好", 
+                    "宠物友好",
+                    {
+                        "type": "input",
+                        "name": "健康需求",
+                        "placeholder": "例如：轮椅通道、过敏提醒"
+                    },
+                    {
+                        "type": "input",
+                        "name": "其他要求",
+                        "placeholder": "请描述其他特殊需求"
+                    }
+                ]
+            };
+        }
+
+        // 保存旅游偏好数据到后端
+        async function saveTravelPreferencesToBackend(preferences) {
+            try {
+                const response = await fetch('/api/config/travel_preferences', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        preferences: preferences
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        console.log('旅游偏好配置已同步到后端');
+                        return true;
+                    }
+                }
+                return false;
+            } catch (error) {
+                console.error('保存旅游偏好到后端失败:', error);
+                return false;
+            }
+        }
+
+        // 保存旅游偏好数据到服务器
+        async function saveTravelPreferences() {
+            try {
+                // 保存到后端
+                const success = await saveTravelPreferencesToBackend(travelPreferences);
+                
+                if (success) {
+                    console.log('旅游偏好配置已保存到服务器');
+                    showNotification('success', '旅游偏好配置已保存');
+                } else {
+                    console.error('保存旅游偏好配置到服务器失败');
+                    showNotification('error', '保存失败，请重试');
+                }
+            } catch (error) {
+                console.error('保存旅游偏好数据失败:', error);
+                showNotification('error', '保存失败，请重试');
+            }
+        }
+
+        // 渲染所有偏好列表
+        function renderPreferencesLists() {
+            console.log('🎨 [调试] 开始渲染所有偏好列表...');
+            console.log('📊 [调试] 当前travelPreferences:', travelPreferences);
+            
+            // 渲染每个类别的偏好列表（新格式）
+            const categoryKeys = Object.keys(travelPreferences);
+            console.log(`📂 [调试] 发现 ${categoryKeys.length} 个类别:`, categoryKeys);
+            
+            categoryKeys.forEach(categoryName => {
+                console.log(`🔄 [调试] 处理类别: "${categoryName}"`);
+                const listId = getCategoryListId(categoryName);
+                console.log(`🎯 [调试] 类别 "${categoryName}" 对应的列表ID: "${listId}"`);
+                
+                if (listId) {
+                    renderPreferenceList(categoryName, listId);
+                } else {
+                    console.warn(`⚠️ [调试] 类别 "${categoryName}" 没有对应的列表ID`);
+                }
+            });
+            
+            console.log('✅ [调试] 所有偏好列表渲染完成');
+        }
+
+        // 渲染特定偏好列表（扁平化混合格式）
+        function renderPreferenceList(category, listId) {
+            console.log(`🎨 [调试] 开始渲染偏好列表 - 类别: "${category}", 列表ID: "${listId}"`);
+            
+            const preferencesList = document.getElementById(listId);
+            if (!preferencesList) {
+                console.error(`❌ [调试] 找不到列表元素，ID: "${listId}"`);
+                return;
+            }
+            
+            console.log(`📍 [调试] 找到列表元素:`, preferencesList);
+            preferencesList.innerHTML = '';
+            
+            // 获取偏好数据（扁平化混合格式）
+            const items = travelPreferences[category] || [];
+            console.log(`📊 [调试] 类别 "${category}" 的偏好项数量: ${items.length}`);
+            console.log(`📋 [调试] 偏好项详情:`, items);
+
+            if (items.length === 0) {
+                console.warn(`⚠️ [调试] 类别 "${category}" 没有偏好项`);
+                console.log(`🔍 [调试] 当前travelPreferences结构:`, travelPreferences);
+                return;
+            }
+
+            // 处理混合格式数据：字符串和对象
+            items.forEach((item, index) => {
+                console.log(`🏗️ [调试] 正在渲染第 ${index + 1} 个偏好项:`, item);
+                
+                const preferenceItem = document.createElement('div');
+                preferenceItem.className = 'preference-item';
+                preferenceItem.dataset.index = index;
+                preferenceItem.dataset.category = category;
+
+                let itemName, isCustomInput = false, placeholderText = '';
+
+                // 处理不同的数据格式
+                if (typeof item === 'string') {
+                    // 字符串格式：预定选项
+                    itemName = item;
+                    preferenceItem.dataset.type = 'preset';
+                } else if (typeof item === 'object' && item.type === 'input') {
+                    // 自定义输入项格式
+                    itemName = item.name;
+                    isCustomInput = true;
+                    placeholderText = item.placeholder || '';
+                    preferenceItem.dataset.type = 'input';
+                } else {
+                    console.error('未知的偏好项格式:', item);
+                    return;
+                }
+
+                const customInputLabel = isCustomInput ? ' 【用户输入】' : '';
+
+                preferenceItem.innerHTML = `
+                    <div class="preference-content-wrapper">
+                        <div class="preference-drag-handle" title="拖拽排序">
+                            <i class="fas fa-grip-vertical"></i>
+                        </div>
+                        <span class="preference-name">${itemName}${customInputLabel}</span>
+                        ${isCustomInput && placeholderText ? `<span class="custom-input-placeholder">（${placeholderText}）</span>` : ''}
+                    </div>
+                    <div class="preference-actions">
+                        <button class="btn-icon" onclick="${isCustomInput ? `editCustomInputItem('${category}', ${index})` : `editPreferenceItem('${category}', ${index})`}" title="编辑">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn-icon delete" onclick="deletePreferenceItem('${category}', ${index})" title="删除">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                `;
+
+                // 添加拖拽功能
+                preferenceItem.draggable = true;
+                preferenceItem.addEventListener('dragstart', handlePreferenceDragStart);
+                preferenceItem.addEventListener('dragover', handlePreferenceDragOver);
+                preferenceItem.addEventListener('drop', handlePreferenceDrop);
+                preferenceItem.addEventListener('dragend', handlePreferenceDragEnd);
+
+                preferencesList.appendChild(preferenceItem);
+            });
+        }
+
+        // 图标选择器功能
+        let currentIconElement = null;
+        let currentCategoryName = null;
+        let selectedIcon = null;
+
+        // 可选择的图标列表
+        const availableIcons = [
+            { class: 'fas fa-star', name: '星形' },
+            { class: 'fas fa-heart', name: '心形' },
+            { class: 'fas fa-map-marker-alt', name: '地标' },
+            { class: 'fas fa-plane', name: '飞机' },
+            { class: 'fas fa-car', name: '汽车' },
+            { class: 'fas fa-hotel', name: '酒店' },
+            { class: 'fas fa-utensils', name: '餐饮' },
+            { class: 'fas fa-shopping-bag', name: '购物' },
+            { class: 'fas fa-camera', name: '相机' },
+            { class: 'fas fa-umbrella-beach', name: '海滩' },
+            { class: 'fas fa-mountain', name: '山峰' },
+            { class: 'fas fa-tree', name: '树木' },
+            { class: 'fas fa-sun', name: '太阳' },
+            { class: 'fas fa-moon', name: '月亮' },
+            { class: 'fas fa-fire', name: '火焰' },
+            { class: 'fas fa-snowflake', name: '雪花' },
+            { class: 'fas fa-music', name: '音乐' },
+            { class: 'fas fa-gamepad', name: '游戏' },
+            { class: 'fas fa-book', name: '书籍' },
+            { class: 'fas fa-graduation-cap', name: '学术' },
+            { class: 'fas fa-palette', name: '调色板' },
+            { class: 'fas fa-gift', name: '礼物' },
+            { class: 'fas fa-coffee', name: '咖啡' },
+            { class: 'fas fa-wine-glass', name: '酒杯' },
+            { class: 'fas fa-bicycle', name: '自行车' },
+            { class: 'fas fa-train', name: '火车' },
+            { class: 'fas fa-ship', name: '船舶' },
+            { class: 'fas fa-landmark', name: '建筑' },
+            { class: 'fas fa-hiking', name: '徒步' },
+            { class: 'fas fa-swimming-pool', name: '游泳' }
+        ];
+
+        /**
+         * 打开类别的图标选择器
+         */
+        function openCategoryIconSelector(categoryName) {
+            // 找到当前类别标签中的图标元素
+            const categoryTab = document.querySelector(`.preference-tab[data-category="${categoryName}"]`);
+            if (!categoryTab) return;
+            
+            const iconElement = categoryTab.querySelector('i');
+            if (!iconElement) return;
+            
+            openIconSelector(categoryName, iconElement);
+        }
+
+        /**
+         * 打开图标选择器
+         */
+        function openIconSelector(categoryName, iconElement) {
+            currentCategoryName = categoryName;
+            currentIconElement = iconElement;
+            selectedIcon = iconElement.className;
+
+            // 生成图标选项
+            const iconGrid = document.getElementById('iconGrid');
+            iconGrid.innerHTML = '';
+
+            availableIcons.forEach(icon => {
+                const iconOption = document.createElement('div');
+                iconOption.className = 'icon-option';
+                if (icon.class === selectedIcon) {
+                    iconOption.classList.add('selected');
+                }
+                
+                iconOption.innerHTML = `
+                    <i class="${icon.class}"></i>
+                    <div class="icon-name">${icon.name}</div>
+                `;
+                
+                iconOption.onclick = () => selectIcon(iconOption, icon.class);
+                iconGrid.appendChild(iconOption);
+            });
+
+            // 显示弹窗
+            document.getElementById('iconSelectorModal').style.display = 'flex';
+        }
+
+        /**
+         * 选择图标
+         */
+        function selectIcon(optionElement, iconClass) {
+            // 移除之前选中的样式
+            document.querySelectorAll('.icon-option').forEach(el => {
+                el.classList.remove('selected');
+            });
+            
+            // 添加选中样式
+            optionElement.classList.add('selected');
+            selectedIcon = iconClass;
+        }
+
+        /**
+         * 确认图标选择
+         */
+        function confirmIconSelection() {
+            if (selectedIcon && currentIconElement && currentCategoryName) {
+                // 更新图标
+                currentIconElement.className = selectedIcon;
+                
+                // 保存到localStorage
+                localStorage.setItem(`preference_icon_${currentCategoryName}`, selectedIcon);
+                
+                // 同时更新用户界面的图标（如果有的话）
+                updateUserInterfaceIcon(currentCategoryName, selectedIcon);
+                
+                console.log(`已更换 "${currentCategoryName}" 的图标为: ${selectedIcon}`);
+                showNotification('success', `已更换"${currentCategoryName}"的图标`);
+            }
+            
+            closeIconSelector();
+        }
+
+        /**
+         * 更新用户界面的图标
+         */
+        function updateUserInterfaceIcon(categoryName, iconClass) {
+            // 这个函数可以通过API调用来通知前端更新图标
+            // 或者直接更新localStorage，让前端页面重新加载时使用新图标
+            console.log(`更新用户界面图标: ${categoryName} -> ${iconClass}`);
+        }
+
+        /**
+         * 关闭图标选择器
+         */
+        function closeIconSelector() {
+            document.getElementById('iconSelectorModal').style.display = 'none';
+            currentIconElement = null;
+            currentCategoryName = null;
+            selectedIcon = null;
+        }
+
+        // 添加预定偏好项
+        function addPreferenceItem(category) {
+            console.log(`➕ [调试] 添加预定偏好项到类别: "${category}"`);
+            
+            if (!travelPreferences[category]) {
+                travelPreferences[category] = [];
+            }
+
+            // 按文档规范，添加字符串格式的新选项
+            const newItem = '新选项';
+
+            // 添加到本地数组
+            travelPreferences[category].push(newItem);
+            
+            // 重新渲染列表
+            renderPreferenceList(category, getCategoryListId(category));
+            
+            // 自动进入编辑模式
+            setTimeout(() => {
+                const newIndex = travelPreferences[category].length - 1;
+                editPreferenceItem(category, newIndex);
+            }, 100);
+            
+            console.log('✅ [调试] 已创建新的预定选项，等待用户编辑');
+        }
+
+        // 添加自定义输入项
+        function addCustomInputItem(category) {
+            console.log(`➕ [调试] 添加自定义输入项到类别: "${category}"`);
+            
+            if (!travelPreferences[category]) {
+                travelPreferences[category] = [];
+            }
+
+            // 按文档规范，添加自定义输入项
+            const newInputItem = {
+                type: "input",
+                name: "新输入项",
+                placeholder: "请输入提示文字"
+            };
+
+            // 添加到本地数组
+            travelPreferences[category].push(newInputItem);
+            
+            // 重新渲染列表
+            renderPreferenceList(category, getCategoryListId(category));
+            
+            // 自动进入编辑模式
+            setTimeout(() => {
+                const newIndex = travelPreferences[category].length - 1;
+                editCustomInputItem(category, newIndex);
+            }, 100);
+            
+            console.log('✅ [调试] 已创建新的自定义输入项，等待用户编辑');
+        }
+
+        // 改进的编辑偏好项函数（使用索引）
+        function editPreferenceItem(category, index) {
+            const contentWrapper = document.querySelector(`[data-category="${category}"][data-index="${index}"] .preference-content-wrapper`);
+            if (!contentWrapper) {
+                console.error(`找不到要编辑的偏好项: category=${category}, index=${index}`);
+                return;
+            }
+
+            const item = travelPreferences[category][index];
+            let currentValue = '';
+            
+            if (typeof item === 'string') {
+                currentValue = item;
+            } else if (item && item.name) {
+                currentValue = item.name;
+            }
+
+            // 创建编辑界面
+            contentWrapper.innerHTML = `
+                <div class="preference-edit">
+                    <input type="text" value="${currentValue}" id="edit-pref-input-${category}-${index}"
+                           onkeypress="if(event.key==='Enter') savePreferenceItem('${category}', ${index})"
+                           onkeydown="if(event.key==='Escape') cancelPreferenceEdit('${category}', ${index})">
+                </div>
+            `;
+            
+            // 更新操作按钮区域
+            const actionsWrapper = contentWrapper.parentElement.querySelector('.preference-actions');
+            actionsWrapper.innerHTML = `
+                <div class="edit-actions">
+                    <button class="btn-small btn-save" onclick="savePreferenceItem('${category}', ${index})" title="保存">
+                        <i class="fas fa-check"></i>
+                    </button>
+                    <button class="btn-small btn-cancel" onclick="cancelPreferenceEdit('${category}', ${index})" title="取消">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            
+            // 聚焦输入框
+            const input = document.getElementById(`edit-pref-input-${category}-${index}`);
+            input.focus();
+            
+            // 如果是新创建的项目，选中所有文本
+            if (currentValue === '新偏好选项' || currentValue === '新输入项') {
+                input.select();
+            }
+        }
+
+        // 编辑自定义输入项
+        function editCustomInputItem(category, index) {
+            const contentWrapper = document.querySelector(`[data-category="${category}"][data-index="${index}"] .preference-content-wrapper`);
+            if (!contentWrapper) {
+                console.error(`找不到要编辑的自定义输入项: category=${category}, index=${index}`);
+                return;
+            }
+
+            const item = travelPreferences[category][index];
+            
+            // 创建编辑界面（支持名称和占位符编辑）
+            contentWrapper.innerHTML = `
+                <div class="custom-input-edit-mode" id="edit-custom-${category}-${index}">
+                    <div class="edit-field">
+                        <label>显示名称：</label>
+                        <input type="text" value="${item.name}" id="edit-name-${category}-${index}"
+                               onkeypress="if(event.key==='Enter') saveCustomInputItem('${category}', ${index})"
+                               onkeydown="if(event.key==='Escape') cancelCustomInputEdit('${category}', ${index})">
+                    </div>
+                    <div class="edit-field">
+                        <label>占位符：</label>
+                        <input type="text" value="${item.placeholder || ''}" id="edit-placeholder-${category}-${index}"
+                               onkeypress="if(event.key==='Enter') saveCustomInputItem('${category}', ${index})"
+                               onkeydown="if(event.key==='Escape') cancelCustomInputEdit('${category}', ${index})">
+                    </div>
+                </div>
+            `;
+            
+            // 更新操作按钮区域
+            const actionsWrapper = contentWrapper.parentElement.querySelector('.preference-actions');
+            actionsWrapper.innerHTML = `
+                <div class="edit-actions">
+                    <button class="btn-small btn-save" onclick="saveCustomInputItem('${category}', ${index})" title="保存">
+                        <i class="fas fa-check"></i>
+                    </button>
+                    <button class="btn-small btn-cancel" onclick="cancelCustomInputEdit('${category}', ${index})" title="取消">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            
+            // 聚焦第一个输入框
+            const nameInput = document.getElementById(`edit-name-${category}-${index}`);
+            nameInput.focus();
+            
+            // 如果是新创建的输入项，选中名称文本
+            if (item.name === '新输入项' || item.name === '用户输入') {
+                nameInput.select();
+            }
+        }
+
+        // 保存偏好项编辑
+        async function savePreferenceItem(category, index) {
+            const input = document.getElementById(`edit-pref-input-${category}-${index}`);
+            if (!input) return;
+            
+            const newName = input.value.trim();
+            if (!newName) {
+                showNotification('error', '偏好名称不能为空');
+                return;
+            }
+
+            const oldItem = travelPreferences[category][index];
+            const isNewItem = (typeof oldItem === 'string' && oldItem === '新偏好选项') || 
+                             (typeof oldItem === 'object' && oldItem.name === '新偏好选项');
+            
+            try {
+                // 更新本地数据（保持字符串格式）
+                travelPreferences[category][index] = newName;
+                
+                // 重新渲染
+                renderPreferenceList(category, getCategoryListId(category));
+                
+                // 保存到后端
+                const success = await saveTravelPreferencesToBackend(travelPreferences);
+                
+                if (success) {
+                    if (isNewItem) {
+                        showNotification('success', `已添加偏好选项：${newName}`);
+                    } else {
+                        showNotification('success', `已更新偏好选项：${newName}`);
+                    }
+                } else {
+                    // 恢复原始数据
+                    travelPreferences[category][index] = oldItem;
+                    renderPreferenceList(category, getCategoryListId(category));
+                    showNotification('error', '保存失败，请重试');
+                }
+            } catch (error) {
+                console.error('保存偏好项失败:', error);
+                travelPreferences[category][index] = oldItem;
+                renderPreferenceList(category, getCategoryListId(category));
+                showNotification('error', '保存失败，请重试');
+            }
+        }
+
+        // 保存自定义输入项编辑
+        async function saveCustomInputItem(category, index) {
+            const newName = document.getElementById(`edit-name-${category}-${index}`).value.trim();
+            const newPlaceholder = document.getElementById(`edit-placeholder-${category}-${index}`).value.trim();
+            
+            if (!newName) {
+                showNotification('error', '显示名称不能为空');
+                return;
+            }
+
+            const oldItem = travelPreferences[category][index];
+            const isNewItem = oldItem.name === '新输入项';
+            
+            try {
+                // 更新本地数据
+                travelPreferences[category][index] = {
+                    type: "input",
+                    name: newName,
+                    placeholder: newPlaceholder || "请输入内容"
+                };
+                
+                // 重新渲染
+                renderPreferenceList(category, getCategoryListId(category));
+                
+                // 保存到后端
+                const success = await saveTravelPreferencesToBackend(travelPreferences);
+                
+                if (success) {
+                    if (isNewItem) {
+                        showNotification('success', `已添加自定义输入项：${newName}`);
+                    } else {
+                        showNotification('success', `已更新自定义输入项：${newName}`);
+                    }
+                } else {
+                    // 恢复原始数据
+                    travelPreferences[category][index] = oldItem;
+                    renderPreferenceList(category, getCategoryListId(category));
+                    showNotification('error', '保存失败，请重试');
+                }
+            } catch (error) {
+                console.error('保存自定义输入项失败:', error);
+                travelPreferences[category][index] = oldItem;
+                renderPreferenceList(category, getCategoryListId(category));
+                showNotification('error', '保存失败，请重试');
+            }
+        }
+
+        // 取消编辑偏好项
+        function cancelPreferenceEdit(category, index) {
+            const item = travelPreferences[category][index];
+            
+            // 如果是新创建的项目，删除它
+            if ((typeof item === 'string' && item === '新偏好选项') || 
+                (typeof item === 'object' && item.name === '新偏好选项')) {
+                travelPreferences[category].splice(index, 1);
+                console.log('已删除未保存的新偏好项');
+            }
+            
+            renderPreferenceList(category, getCategoryListId(category));
+        }
+
+        // 取消编辑自定义输入项
+        function cancelCustomInputEdit(category, index) {
+            const item = travelPreferences[category][index];
+            
+            // 如果是新创建的输入项，删除它
+            if (item && (item.name === '新输入项' || item.name === '用户输入')) {
+                travelPreferences[category].splice(index, 1);
+                console.log('已删除未保存的新输入项');
+            }
+            
+            renderPreferenceList(category, getCategoryListId(category));
+        }
+        // 删除偏好项
+        async function deletePreferenceItem(category, index) {
+            if (!confirm('确定要删除这个偏好选项吗？')) return;
+
+            const deletedItem = travelPreferences[category][index];
+            
+            try {
+                // 从本地数组中删除
+                travelPreferences[category].splice(index, 1);
+                
+                // 重新渲染
+                renderPreferenceList(category, getCategoryListId(category));
+                
+                // 保存到后端
+                const success = await saveTravelPreferencesToBackend(travelPreferences);
+                
+                if (success) {
+                    showNotification('success', '已删除偏好选项');
+                } else {
+                    // 恢复数据
+                    travelPreferences[category].splice(index, 0, deletedItem);
+                    renderPreferenceList(category, getCategoryListId(category));
+                    showNotification('error', '删除失败，请重试');
+                }
+            } catch (error) {
+                console.error('删除偏好项失败:', error);
+                // 恢复数据
+                travelPreferences[category].splice(index, 0, deletedItem);
+                renderPreferenceList(category, getCategoryListId(category));
+                showNotification('error', '删除失败，请重试');
+            }
+        }
+
+        // 渲染偏好标签页（动态生成）
+        function renderPreferenceTabs() {
+            const tabsContainer = document.querySelector('.preference-tabs');
+            const contentContainer = document.querySelector('.preference-content');
+            if (!tabsContainer || !contentContainer) return;
+
+            // 保存"新增类别"按钮
+            const addCategoryBtn = tabsContainer.querySelector('.add-category-tab');
+            
+            // 清空现有标签（保留新增按钮）
+            tabsContainer.innerHTML = '';
+            
+            // 动态生成标签和面板
+            const categories = Object.keys(travelPreferences);
+            console.log('🏷️ [调试] 渲染类别标签:', categories);
+            
+            categories.forEach((category, index) => {
+                // 获取已保存的图标，默认为星形图标
+                const savedIcon = localStorage.getItem(`preference_icon_${category}`) || 'fas fa-star';
+                
+                // 创建标签
+                const tab = document.createElement('button');
+                tab.className = `preference-tab ${index === 0 ? 'active' : ''}`;
+                tab.dataset.category = category;
+                tab.innerHTML = `
+                    <i class="${savedIcon}"></i> ${category}
+                    <button class="delete-category-btn" onclick="event.stopPropagation(); deleteCategory('${category}')" title="删除类别">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                
+                // 添加点击事件
+                tab.addEventListener('click', function() {
+                    switchPreferenceTab(category);
+                });
+                
+                tabsContainer.appendChild(tab);
+            });
+            
+            // 重新添加"新增类别"按钮
+            if (addCategoryBtn) {
+                tabsContainer.appendChild(addCategoryBtn);
+            }
+            
+            // 清空并重新生成面板
+            contentContainer.innerHTML = '';
+            
+            categories.forEach((category, index) => {
+                const panel = document.createElement('div');
+                panel.className = `preference-panel ${index === 0 ? 'active' : ''}`;
+                panel.id = getCategoryPanelId(category);
+                
+                panel.innerHTML = `
+                    <div class="preference-panel-header">
+                        <h4>${category}偏好</h4>
+                        <div class="panel-actions">
+                            <button type="button" class="upload-btn icon-btn" onclick="openCategoryIconSelector('${category}')">
+                                <i class="fas fa-palette"></i> 更换图标
+                            </button>
+                            <button type="button" class="upload-btn" onclick="addPreferenceItem('${category}')">
+                                <i class="fas fa-plus"></i> 添加选项
+                            </button>
+                            <button type="button" class="upload-btn" onclick="addCustomInputItem('${category}')">
+                                <i class="fas fa-keyboard"></i> 添加用户输入项
+                            </button>
+                        </div>
+                    </div>
+                    <div class="preferences-list" id="${getCategoryListId(category)}">
+                        <!-- ${category}列表将通过JavaScript动态生成 -->
+                    </div>
+                `;
+                
+                contentContainer.appendChild(panel);
+            });
+        }
+
+        // 显示新增类别对话框
+        function showAddCategoryDialog() {
+            const modal = document.getElementById('addCategoryModal');
+            if (modal) {
+                modal.style.display = 'flex';
+                document.getElementById('categoryName').value = '';
+                document.getElementById('categoryName').focus();
+            }
+        }
+
+        // 隐藏新增类别对话框
+        function hideAddCategoryDialog() {
+            const modal = document.getElementById('addCategoryModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // 添加新类别（扁平化格式）
+        async function addNewCategory() {
+            const categoryName = document.getElementById('categoryName').value.trim();
+
+            // 验证输入
+            if (!categoryName) {
+                showNotification('error', '类别名称不能为空');
+                return;
+            }
+
+            // 检查类别是否已存在
+            if (travelPreferences[categoryName]) {
+                showNotification('error', '类别已存在');
+                return;
+            }
+
+            try {
+                // 添加到本地数据
+                travelPreferences[categoryName] = [];
+                
+                // 保存到后端
+                const success = await saveTravelPreferencesToBackend(travelPreferences);
+                
+                if (success) {
+                    // 重新渲染界面
+                    renderPreferenceTabs();
+                    renderPreferencesLists();
+                    hideAddCategoryDialog();
+                    switchPreferenceTab(categoryName);
+                    showNotification('success', `偏好类别 "${categoryName}" 已添加`);
+                } else {
+                    // 恢复数据
+                    delete travelPreferences[categoryName];
+                    showNotification('error', '添加类别失败，请重试');
+                }
+            } catch (error) {
+                console.error('添加类别出错:', error);
+                // 恢复数据
+                delete travelPreferences[categoryName];
+                showNotification('error', '添加类别失败，请重试');
+            }
+        }
+
+        // 删除类别（扁平化格式）
+        async function deleteCategory(categoryName) {
+            if (!confirm(`确定要删除偏好类别 "${categoryName}" 吗？\n此操作将同时删除该类别下的所有偏好选项。`)) {
+                return;
+            }
+
+            try {
+                // 备份要删除的数据
+                const deletedData = travelPreferences[categoryName];
+                
+                // 从本地数据中删除
+                delete travelPreferences[categoryName];
+                
+                // 保存到后端
+                const success = await saveTravelPreferencesToBackend(travelPreferences);
+                
+                if (success) {
+                    // 重新渲染界面
+                    renderPreferenceTabs();
+                    renderPreferencesLists();
+                    
+                    // 切换到第一个可用类别
+                    const firstCategory = Object.keys(travelPreferences)[0];
+                    if (firstCategory) {
+                        switchPreferenceTab(firstCategory);
+                    }
+                    
+                    showNotification('success', `偏好类别 "${categoryName}" 已删除`);
+                } else {
+                    // 恢复数据
+                    travelPreferences[categoryName] = deletedData;
+                    showNotification('error', '删除类别失败，请重试');
+                }
+            } catch (error) {
+                console.error('删除类别出错:', error);
+                // 恢复数据
+                if (deletedData) {
+                    travelPreferences[categoryName] = deletedData;
+                }
+                showNotification('error', '删除类别失败，请重试');
+            }
+        }
+
+        // 获取类别对应的面板ID（动态生成）
+        function getCategoryPanelId(category) {
+            // 动态生成面板ID，基于类别名称
+            return category.replace(/\s+/g, '') + '-panel';
+        }
+
+        // 点击弹窗外部关闭图标选择器
+        document.addEventListener('DOMContentLoaded', function() {
+            const iconSelectorModal = document.getElementById('iconSelectorModal');
+            if (iconSelectorModal) {
+                iconSelectorModal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        closeIconSelector();
+                    }
+                });
+            }
+        });
+    </script>
+
+    <!-- 图标选择器弹窗 -->
+    <div id="iconSelectorModal" class="icon-selector-modal">
+        <div class="icon-selector-content">
+            <div class="icon-selector-header">
+                <h3 class="icon-selector-title">选择偏好类别图标</h3>
+                <button class="icon-selector-close" onclick="closeIconSelector()">&times;</button>
+            </div>
+            <div class="icon-grid" id="iconGrid">
+                <!-- 图标选项将通过JavaScript动态生成 -->
+            </div>
+            <div class="icon-selector-footer">
+                <button class="icon-selector-btn cancel" onclick="closeIconSelector()">取消</button>
+                <button class="icon-selector-btn confirm" onclick="confirmIconSelection()">确定</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
