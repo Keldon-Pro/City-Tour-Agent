@@ -1089,17 +1089,15 @@
 
         /* 添加地点按钮样式 */
         .add-location-section {
-            padding: 16px 20px;
+            padding: 20px 20px;
             display: flex;
             flex-direction: column;
             gap: 12px;
             justify-content: center;
             align-items: center;
             background: transparent;
-            position: sticky;
-            bottom: 0;
-            z-index: 10;
-            margin: 20px -20px -20px -20px;
+            position: static;
+            margin: 20px 0;
         }
 
         /* 确保 add-location-section 中的按钮也有统一宽度 */
@@ -1110,7 +1108,6 @@
         /* 行程表内容容器 */
         #itinerary-content {
             position: relative;
-            padding-bottom: 80px; /* 为底部浮动按钮留出空间 */
         }
 
         #itinerary-days {
