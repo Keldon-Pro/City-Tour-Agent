@@ -1,0 +1,2 @@
+# This file ensures the model_cache directory exists in git
+# while ignoring all cached model files due to their large size

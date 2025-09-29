@@ -50,16 +50,22 @@ logs/
 # Python virtual environments
 mcp_venv/
 
-# Data
-data/
+# Data (only ignore specific files, keep directory structure)
 *.pkl
 *.cache
 
-# Model cache and large files
-model_cache/
+# Model cache and large files (ignore all contents but keep structure)
+App/model_cache/*
+!App/model_cache/.gitkeep
 models/
 *.bin
 *.safetensors
+# Large model files
+*.h5
+*.onnx
+*.pb
+*.pth
+*.pt
 
 # Excel files (可根据需要调整)
 *.xlsx
