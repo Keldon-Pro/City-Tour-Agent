@@ -142,6 +142,13 @@ def download_embedding_model():
         logging.info(f"📁 缓存目录: {cache_dir}")
         logging.info("⏳ 正在下载模型，这可能需要几分钟时间（约2GB）...")
         
+        # 检查Hugging Face token是否正确设置
+        hf_token = os.getenv('HUGGINGFACE_TOKEN') or os.getenv('HUGGINGFACE_HUB_TOKEN')
+        if hf_token:
+            logging.info("🔑 使用Hugging Face token进行认证")
+        else:
+            logging.warning("⚠️ 未设置Hugging Face token，可能会遇到认证问题")
+        
         start_time = time.time()
         
         # 初始化模型（这会触发下载）
@@ -189,6 +196,13 @@ def download_embedding_model():
             logging.error("   1. 检查网络连接")
             logging.error("   2. 稍后重试")
             logging.error("   3. 考虑使用VPN")
+        elif "expecting value" in error_msg.lower() or "json" in error_msg.lower():
+            logging.error("📡 JSON解析错误，可能是网络或服务器问题")
+            logging.error("💡 解决方案:")
+            logging.error("   1. 检查网络连接是否稳定")
+            logging.error("   2. 确认Hugging Face服务是否正常")
+            logging.error("   3. 稍后重试")
+            logging.error("   4. 考虑使用镜像源或VPN")
         else:
             logging.error("💡 通用解决方案:")
             logging.error("   1. 检查网络连接")

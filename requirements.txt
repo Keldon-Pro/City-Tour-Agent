@@ -16,6 +16,7 @@ numpy>=1.21.0
 python-docx>=0.8.11
 PyPDF2>=1.26.0
 scikit-learn>=0.24.0
+huggingface_hub>=0.16.0
 
 # MCP wrapper runtime (implicit via requests) - keep explicit for clarity
 # (No extra lines needed; requests already included.)

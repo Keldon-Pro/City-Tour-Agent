@@ -1,0 +1,75 @@
+name: Welcome New Contributors
+
+on:
+  issues:
+    types: [opened]
+  pull_request_target:
+    types: [opened]
+
+jobs:
+  welcome:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Welcome new contributor
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const contributor = context.payload.sender.login;
+            
+            // Check if this is the user's first contribution
+            const query = `query($owner: String!, $repo: String!, $contributor: String!) {
+              repository(owner: $owner, name: $repo) {
+                issues(first: 100, filterBy: {createdBy: $contributor}) {
+                  totalCount
+                }
+                pullRequests(first: 100, author: $contributor) {
+                  totalCount
+                }
+              }
+            }`;
+            
+            const result = await github.graphql(query, {
+              owner,
+              repo,
+              contributor
+            });
+            
+            const isFirstContribution = 
+              result.repository.issues.totalCount <= 1 && 
+              result.repository.pullRequests.totalCount <= 1;
+            
+            if (isFirstContribution) {
+              let message = '';
+              
+              if (context.eventName === 'issues') {
+                message = '🎉 感谢您的第一个Issue！\n\n' +
+                         '欢迎来到 City Tour Agent 项目！我们很高兴看到您的参与。\n\n' +
+                         '**接下来您可以：**\n' +
+                         '- 📖 查看我们的 [贡献指南](https://github.com/' + owner + '/' + repo + '/blob/main/CONTRIBUTING.md)\n' +
+                         '- 🤝 了解我们的 [行为准则](https://github.com/' + owner + '/' + repo + '/blob/main/CODE_OF_CONDUCT.md)\n' +
+                         '- 💬 在 [Discussions](https://github.com/' + owner + '/' + repo + '/discussions) 中与社区交流\n' +
+                         '- 🏷️ 查看 [good first issue](https://github.com/' + owner + '/' + repo + '/labels/good%20first%20issue) 标签找到适合的入门任务\n\n' +
+                         '我们会尽快查看您的Issue并提供反馈。感谢您对项目的关注！';
+              } else {
+                message = '🎉 感谢您的第一个Pull Request！\n\n' +
+                         '欢迎来到 City Tour Agent 项目！我们很高兴看到您的贡献。\n\n' +
+                         '**PR审查流程：**\n' +
+                         '1. 我们会检查您的代码是否符合项目标准\n' +
+                         '2. 运行自动化测试\n' +
+                         '3. 进行代码审查\n' +
+                         '4. 提供反馈或合并\n\n' +
+                         '**需要帮助？**\n' +
+                         '- 📖 查看 [贡献指南](https://github.com/' + owner + '/' + repo + '/blob/main/CONTRIBUTING.md)\n' +
+                         '- 💬 在PR评论中询问问题\n' +
+                         '- 🔄 根据反馈进行修改\n\n' +
+                         '感谢您对项目的贡献！我们期待与您的合作。';
+              }
+              
+              await github.rest.issues.createComment({
+                owner: owner,
+                repo: repo,
+                issue_number: context.payload.number,
+                body: message
+              });
+            }

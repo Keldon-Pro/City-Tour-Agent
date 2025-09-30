@@ -100,10 +100,59 @@ pytest -c tests/pytest.ini -m integration          # 可能真实请求
 - 可在前置层（如 Nginx）限制访问频率
 - 若需要容器化 / CI / 扩展多城市规划，可在后续迭代添加
 
+## 开源协作
 
+### 🤝 参与贡献
+
+我们欢迎所有形式的贡献！无论您是开发者、设计师、文档编写者还是用户，都有适合您的参与方式。
+
+#### 快速开始贡献
+1. **Fork** 项目到您的GitHub账户
+2. **Clone** 您的fork到本地
+3. 创建功能分支：`git checkout -b feature/amazing-feature`
+4. 提交您的更改：`git commit -m 'feat: 添加某个新功能'`
+5. 推送到分支：`git push origin feature/amazing-feature`
+6. 创建 **Pull Request**
+
+#### 贡献方式
+- 🐛 **报告Bug** - 使用[Issue模板](https://github.com/Keldon-Pro/City-Tour-Agent/issues/new)
+- ✨ **建议功能** - 提出新功能想法和改进建议
+- 💻 **代码贡献** - 修复bug、实现新功能、优化性能
+- 📚 **完善文档** - 改进文档、添加示例、翻译内容
+- 🧪 **编写测试** - 增加测试覆盖率、改进测试质量
+
+#### 寻找适合的Issue
+- 🏷️ [`good first issue`](https://github.com/Keldon-Pro/City-Tour-Agent/labels/good%20first%20issue) - 适合新手的问题
+- 🏷️ [`help wanted`](https://github.com/Keldon-Pro/City-Tour-Agent/labels/help%20wanted) - 需要社区帮助
+- 🏷️ [`documentation`](https://github.com/Keldon-Pro/City-Tour-Agent/labels/documentation) - 文档相关
+
+### 📋 重要文档
+- [**贡献指南**](CONTRIBUTING.md) - 详细的贡献流程和规范
+- [**行为准则**](CODE_OF_CONDUCT.md) - 社区行为准则
+- [**版本记录**](Doc/版本记录.md) - 提交规范和版本历史
+- [**贡献者列表**](CONTRIBUTORS.md) - 感谢所有贡献者
+
+### 🏆 贡献者认可
+- 所有贡献者将被列入[CONTRIBUTORS.md](CONTRIBUTORS.md)
+- 重要贡献者将在Release Notes中特别感谢
+- 活跃贡献者可获得项目collaborator权限
+
+### 💬 交流渠道
+- **GitHub Issues** - 技术讨论和问题报告
+- **GitHub Discussions** - 想法交流和一般讨论
+- **Pull Request评论** - 代码审查和技术细节
+
+### 🔧 开发环境
+详细的开发环境设置请参考[贡献指南](CONTRIBUTING.md#开发环境设置)。
+
+### 📊 项目状态
+- ⭐ **Star** 项目来表示支持
+- 👀 **Watch** 项目来获取最新动态
+- 🍴 **Fork** 项目来开始贡献
 
 ## 致谢
 - 高德开放平台
 - 火山方舟 / 其他 LLM 服务提供方
 - 开源 Python / Flask / pytest 生态
+- 所有贡献者和用户的支持
 
