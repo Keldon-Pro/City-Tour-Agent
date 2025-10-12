@@ -1661,7 +1661,107 @@
             background: #94a3b8;
         }
         
+        /* 地图浮标按钮样式 */
+        #map-float-btn {
+            position: fixed;
+            top: 80px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            background-color: #4c6ef5;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(76, 110, 245, 0.3);
+            transition: all 0.3s ease;
+            z-index: 1003;
+        }
 
+        #map-float-btn:hover {
+            background-color: #4263eb;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(76, 110, 245, 0.4);
+        }
+
+        #map-float-btn i {
+            color: white;
+            font-size: 20px;
+        }
+
+        /* 地图容器样式 */
+        #map-container {
+            position: fixed;
+            right: 20px;
+            top: 70px;
+            width: calc(100vw - 480px);
+            height: calc(100vh - 90px);
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+            z-index: 1001;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+        }
+
+        /* 当左栏折叠时，地图容器扩展 */
+        #left-column.collapsed ~ #map-container {
+            left: 26px;
+            right: 20px;
+            width: auto;
+        }
+
+        /* 地图隐藏状态 */
+        #map-container.map-hidden {
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-20px);
+        }
+
+        /* 地图头部 */
+        .map-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            background-color: #f8faff;
+            border-radius: 10px 10px 0 0;
+        }
+
+        .map-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .map-close-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+        }
+
+        .map-close-btn:hover {
+            background-color: #e2e8f0;
+        }
+
+        .map-close-btn i {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        /* 地图iframe样式 */
+        .map-iframe {
+            flex: 1;
+            width: 100%;
+            border: none;
+            border-radius: 0 0 10px 10px;
+        }
 
 
     </style>
@@ -1670,6 +1770,22 @@
 <body>
     <h1 class="main-title" id="main-title">旅游智能助手</h1>
     <!-- 主标题会在页面加载时通过预加载脚本更新 -->
+    
+    <!-- 地图浮标按钮 -->
+    <div id="map-float-btn" title="打开/关闭地图">
+        <i class="fas fa-map-marked-alt"></i>
+    </div>
+    
+    <!-- 高德地图容器 -->
+    <div id="map-container" class="map-hidden">
+        <div class="map-header">
+            <span class="map-title">高德地图</span>
+            <button id="map-close-btn" class="map-close-btn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <iframe src="https://ditu.amap.com/" frameborder="0" class="map-iframe" allow="geolocation *; clipboard-read *; clipboard-write *; fullscreen *; payment *"></iframe>
+    </div>
     
     <!-- 折叠按钮 -->
     <div id="collapse-btn">
@@ -5613,6 +5729,106 @@
             return initializePageConfig();
         };
         
+        // =====================================
+        // 地图功能管理
+        // =====================================
+        
+        /**
+         * 初始化地图功能
+         */
+        function initializeMapFeature() {
+            const mapFloatBtn = document.getElementById('map-float-btn');
+            const mapContainer = document.getElementById('map-container');
+            const mapCloseBtn = document.getElementById('map-close-btn');
+            
+            if (!mapFloatBtn || !mapContainer || !mapCloseBtn) {
+                console.warn('地图组件元素未找到');
+                return;
+            }
+            
+            // 地图浮标按钮点击事件
+            mapFloatBtn.addEventListener('click', function() {
+                toggleMap();
+            });
+            
+            // 地图关闭按钮点击事件
+            mapCloseBtn.addEventListener('click', function() {
+                hideMap();
+            });
+            
+            console.log('地图功能初始化完成');
+        }
+        
+        /**
+         * 切换地图显示/隐藏
+         */
+        function toggleMap() {
+            const mapContainer = document.getElementById('map-container');
+            if (!mapContainer) return;
+            
+            if (mapContainer.classList.contains('map-hidden')) {
+                showMap();
+            } else {
+                hideMap();
+            }
+        }
+        
+        /**
+         * 显示地图
+         */
+        function showMap() {
+            const mapContainer = document.getElementById('map-container');
+            if (!mapContainer) return;
+            
+            mapContainer.classList.remove('map-hidden');
+            console.log('地图已显示');
+        }
+        
+        /**
+         * 隐藏地图
+         */
+        function hideMap() {
+            const mapContainer = document.getElementById('map-container');
+            if (!mapContainer) return;
+            
+            mapContainer.classList.add('map-hidden');
+            console.log('地图已隐藏');
+        }
+        
+        // 地图浮窗布局：根据左侧栏折叠状态自适应宽度
+        function syncMapPanelLayout() {
+            const left = document.getElementById('left-column');
+            const right = document.getElementById('right-column');
+            const map = document.getElementById('map-container');
+            if (!left || !right || !map) return;
+
+            const apply = () => {
+                const collapsed = left.classList.contains('collapsed');
+                document.body.classList.toggle('left-collapsed', collapsed);
+                // 将地图浮窗宽度同步为右侧聊天窗口的可用宽度
+                const width = right.clientWidth;
+                if (width && width > 0) {
+                    map.style.width = width + 'px';
+                }
+            };
+
+            // 初始应用一次
+            apply();
+
+            // 监听左侧栏折叠状态变化
+            const observer = new MutationObserver(apply);
+            observer.observe(left, { attributes: true, attributeFilter: ['class'] });
+
+            // 窗口尺寸变化时重新计算
+            window.addEventListener('resize', apply);
+        }
+
+        // 页面载入完成后初始化地图功能与布局适配
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeMapFeature();
+            syncMapPanelLayout();
+        });
+
         // 页面载入完成后的调试信息
         console.log(`=== ${getCurrentCityName()}旅游助手页面载入完成 ===`);
         console.log('可用的调试函数:');
@@ -5620,6 +5836,9 @@
         console.log('  - testPrintDirectly(): 直接测试打印功能');
         console.log('  - generatePrintableItinerary(): 手动调用打印');
         console.log('  - getCurrentItinerary(): 获取当前行程数据');
+        console.log('  - toggleMap(): 切换地图显示/隐藏');
+        console.log('  - showMap(): 显示地图');
+        console.log('  - hideMap(): 隐藏地图');
         console.log('');
         console.log('使用方法: 在控制台中输入 debugPrintFunction() 开始调试');
     </script>
