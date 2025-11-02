@@ -1560,6 +1560,10 @@
                     <i class="fas fa-file-alt"></i>
                     <span>文档管理</span>
                 </div>
+                <div class="nav-item" onclick="navigateTo('routes')">
+                    <i class="fas fa-route"></i>
+                    <span>路线推荐</span>
+                </div>
             </div>
         </div>
 
@@ -1574,6 +1578,76 @@
                     <div class="dropdown-menu" id="dropdownMenu">
                         <a href="#" id="changePassword">修改密码</a>
                         <a href="#" id="logout">退出登录</a>
+                    </div>
+                </div>
+            </div>
+                        <!-- 路线推荐页面 -->
+            <div id="routes-page" class="page-content" style="display: none;">
+                <div class="card">
+                    <div class="section-header">
+                        <h3>路线推荐示例数据</h3>
+                    </div>
+
+                    <div style="display:flex; gap:16px; align-items:flex-start;">
+                        <!-- 左侧占位区域，可用于后续扩展路线分析等 -->
+                        <div style="flex:1; min-height:200px;">
+                            <!-- 行程卡片预览容器（与首页left-content的行程表风格一致） -->
+                            <div id="routePreviewContainer">
+                                <!-- 空状态 -->
+                                <div id="previewEmpty" class="empty-state" style="display:block;">
+                                    <div class="empty-icon">
+                                        <i class="fas fa-route"></i>
+                                    </div>
+                                    <h3>预览行程</h3>
+                                    <p>点击右侧“预览效果”按钮，用文本框中的JSON预览行程卡片</p>
+                                </div>
+                                <!-- 预览内容 -->
+                                <div id="previewItineraryContent" style="display:none;">
+                                    <div id="previewItineraryDays"></div>
+                                </div>
+                            </div>
+                            <!-- 预览样式（摘取首页index.html部分样式，保持外观一致） -->
+                            <style>
+                                #routePreviewContainer { padding: 10px; }
+                                .itinerary-day { margin-bottom: 20px; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; }
+                                .day-header { background: linear-gradient(135deg, #4c6ef5 0%, #4263eb 100%); color: white; padding: 12px 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; position: relative; }
+                                .day-number { font-size: 16px; flex: 1; text-align: left; }
+                                .day-date { font-size: 16px; position: absolute; left: 50%; transform: translateX(-50%); }
+                                .day-count { font-size: 14px; opacity: 0.9; flex: 1; text-align: right; }
+                                .location-item { padding: 12px 15px; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; transition: all 0.3s ease; position: relative; user-select: none; }
+                                .location-item:hover { background-color: #f8f9fa; }
+                                .location-item:last-child { border-bottom: none; }
+                                .visit-order { background-color: #e9ecef; color: #6f42c1; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; margin-right: 12px; font-size: 12px; font-weight: bold; }
+                                .location-details { flex: 1; display: flex; flex-direction: column; justify-content: center; min-height: 24px; }
+                                .location-address { font-weight: 500; margin-bottom: 0; line-height: 1.3; }
+                                .location-time { color: #666; font-size: 13px; margin-top: 2px; }
+                                .location-notes { color: #888; font-size: 12px; font-style: italic; margin-top: 2px; }
+                                .no-locations { padding: 12px 15px; color: #666; font-style: italic; }
+                            </style>
+                        </div>
+
+                        <!-- 右侧大文本框：编辑travel_sample.json原始内容 -->
+                        <div style="flex:1.5;">
+                            <label for="routeSampleTextarea" class="description-label" style="margin-bottom:8px;">
+                                <i class="fas fa-file-code"></i>
+                                示例行程JSON（可编辑，保存后覆盖文件）
+                            </label>
+                            <textarea id="routeSampleTextarea" class="description-input" 
+                                      style="width:100%; min-height:520px; font-family: monospace; white-space: pre;"
+                                      placeholder="在此编辑JSON内容，例如 {\n  \"days\": [ ... ]\n}"></textarea>
+                                                 <div style="text-align: right; margin-top: 10px;">
+                            <button id="loadRouteSample" class="upload-btn" style="margin-right:8px;">
+                                <i class="fas fa-download" style="margin-right:6px;"></i>加载示例
+                            </button>
+                            <button id="previewRouteSample" class="upload-btn" style="margin-right:8px;">
+                                <i class="fas fa-eye" style="margin-right:6px;"></i>预览效果
+                            </button>
+                            <button id="saveRouteSample" class="upload-btn">
+                                <i class="fas fa-save" style="margin-right:6px;"></i>保存
+                            </button>
+                        </div>
+                        </div>
+
                     </div>
                 </div>
             </div>
@@ -1680,6 +1754,8 @@
                     </div>
                 </div>
             </div>
+
+
         </div>
     </div> <!-- /.admin-container -->
 
@@ -1734,6 +1810,14 @@
                     loadConfigData();
                     break;
                 }
+                case 'routes': {
+                    const routesPage = document.getElementById('routes-page');
+                    if (routesPage) routesPage.style.display = 'block';
+                    document.querySelector('.header h2').textContent = '路线推荐';
+                    // 进入页面时自动加载一次
+                    loadRouteSampleData();
+                    break;
+                }
                 default:
                     console.log('Unknown page:', page);
             }
@@ -1749,6 +1833,162 @@
 
         // 在页面加载时检查登录状态
         document.addEventListener('DOMContentLoaded', checkLogin);
+
+        // 路线推荐：加载与保存示例JSON
+        async function loadRouteSampleData() {
+            try {
+                const resp = await fetch('/admin/sample-itinerary', { cache: 'no-store' });
+                const data = await resp.json();
+                if (!resp.ok || data.code !== 0) {
+                    throw new Error(data.msg || data.message || '加载失败');
+                }
+                const textarea = document.getElementById('routeSampleTextarea');
+                textarea.value = JSON.stringify(data.data, null, 2);
+                showNotification('success', '示例内容已加载');
+            } catch (error) {
+                showNotification('error', `加载失败: ${error.message}`);
+            }
+        }
+
+        async function saveRouteSampleData() {
+            try {
+                const textarea = document.getElementById('routeSampleTextarea');
+                const text = textarea.value || '';
+                let parsed;
+                try {
+                    parsed = JSON.parse(text);
+                } catch (e) {
+                    showNotification('error', `JSON 格式错误: ${e.message}`);
+                    return;
+                }
+                const resp = await fetch('/admin/sample-itinerary', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: JSON.stringify(parsed) })
+                });
+                const res = await resp.json();
+                if (!resp.ok || res.code !== 0) {
+                    throw new Error(res.msg || res.message || '保存失败');
+                }
+                showNotification('success', '已保存并覆盖示例JSON');
+            } catch (error) {
+                showNotification('error', `保存失败: ${error.message}`);
+            }
+        }
+
+        // 预览逻辑：解析右侧文本框的JSON并渲染到左侧行程卡片预览
+        function normalizeItineraryPayload(payload) {
+            if (!payload || typeof payload !== 'object') return null;
+            if (Array.isArray(payload.days)) return { days: payload.days };
+            return null;
+        }
+
+        function ensureVisitOrders(days) {
+            days.forEach(day => {
+                if (!Array.isArray(day.locations)) day.locations = [];
+                day.locations.forEach((loc, idx) => {
+                    if (typeof loc.visit_order !== 'number') loc.visit_order = idx + 1;
+                    if (!loc.time) loc.time = '';
+                    if (typeof loc.fixed !== 'boolean') loc.fixed = false;
+                    if (!('notes' in loc)) loc.notes = '';
+                });
+            });
+        }
+
+        function formatDateCN(dateString) {
+            try {
+                const date = new Date(dateString);
+                const days = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+                return `${date.getMonth() + 1}月${date.getDate()}日 ${days[date.getDay()]}`;
+            } catch (e) {
+                return dateString || '';
+            }
+        }
+
+        function previewRouteFromTextarea() {
+            const textarea = document.getElementById('routeSampleTextarea');
+            const previewEmpty = document.getElementById('previewEmpty');
+            const previewContent = document.getElementById('previewItineraryContent');
+            const daysContainer = document.getElementById('previewItineraryDays');
+
+            let parsed;
+            try {
+                parsed = JSON.parse(textarea.value || '{}');
+            } catch (e) {
+                showNotification('error', `JSON 解析失败: ${e.message}`);
+                return;
+            }
+
+            const normalized = normalizeItineraryPayload(parsed);
+            if (!normalized || !Array.isArray(normalized.days)) {
+                showNotification('error', 'JSON格式不正确：仅支持 {days:[...]} 格式');
+                return;
+            }
+
+            // 补齐字段；缺失date时用今天+idx
+            normalized.days.forEach((day, idx) => {
+                if (!day.date) {
+                    const d = new Date();
+                    d.setDate(d.getDate() + idx);
+                    day.date = d.toISOString().split('T')[0];
+                }
+                if (typeof day.day_number !== 'number') day.day_number = idx + 1;
+                if (!Array.isArray(day.locations)) day.locations = [];
+            });
+            ensureVisitOrders(normalized.days);
+
+            const hasContent = normalized.days && normalized.days.some(d => d.locations && d.locations.length > 0);
+            if (!hasContent) {
+                previewEmpty.style.display = 'block';
+                previewContent.style.display = 'none';
+                daysContainer.innerHTML = '';
+                return;
+            }
+
+            previewEmpty.style.display = 'none';
+            previewContent.style.display = 'block';
+            daysContainer.innerHTML = normalized.days.map(day => renderPreviewDay(day)).join('');
+        }
+
+        function renderPreviewDay(day) {
+            const formattedDate = formatDateCN(day.date);
+            const locationsHtml = (day.locations && day.locations.length > 0)
+              ? day.locations.map((loc, idx) => renderPreviewLocation(loc, idx)).join('')
+              : `<div class="no-locations" data-date="${day.date}">暂无安排</div>`;
+            return `
+                <div class="itinerary-day">
+                    <div class="day-header">
+                        <div class="day-number">第${day.day_number}天</div>
+                        <div class="day-date">${formattedDate}</div>
+                        <div class="day-count">${day.locations ? day.locations.length : 0} 个地点</div>
+                    </div>
+                    ${locationsHtml}
+                </div>
+            `;
+        }
+
+        function renderPreviewLocation(location, index) {
+            return `
+                <div class="location-item" data-index="${index}">
+                    <div class="visit-order">${location.visit_order}</div>
+                    <div class="location-details">
+                        <div class="location-address">${location.address || '未命名地点'}</div>
+                        ${location.time ? `<div class="location-time">${location.time}</div>` : ''}
+                        ${location.notes ? `<div class="location-notes">${location.notes}</div>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        // 绑定按钮事件
+        document.addEventListener('DOMContentLoaded', () => {
+            const loadBtn = document.getElementById('loadRouteSample');
+            const saveBtn = document.getElementById('saveRouteSample');
+            const previewBtn = document.getElementById('previewRouteSample');
+            if (loadBtn) loadBtn.addEventListener('click', loadRouteSampleData);
+            if (saveBtn) saveBtn.addEventListener('click', saveRouteSampleData);
+            if (previewBtn) previewBtn.addEventListener('click', previewRouteFromTextarea);
+        });
 
         // DOM 元素
         const uploadForm = document.getElementById('uploadForm');
