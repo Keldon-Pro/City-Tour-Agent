@@ -2717,6 +2717,59 @@ def index():
     return app.send_static_file('index.html')
 
 
+# 示例行程表接口：从数据缓存目录读取并返回JSON
+@app.route('/api/sample-itinerary', methods=['GET'])
+def get_sample_itinerary():
+    try:
+        sample_path = os.path.join(app.root_path, 'data', 'cache', 'travel_sample.json')
+        with open(sample_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        return jsonify(data)
+    except FileNotFoundError:
+        return jsonify({"status": "error", "message": "示例文件不存在"}), 404
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# 管理端：读取与保存示例行程JSON（用于路线推荐页右侧文本框）
+@app.route('/admin/sample-itinerary', methods=['GET', 'POST'])
+@login_required
+def admin_sample_itinerary():
+    sample_path = os.path.join(app.config['CACHE_FOLDER'], 'travel_sample.json')
+    try:
+        if request.method == 'GET':
+            with open(sample_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            return jsonify({
+                'code': 0,
+                'data': data,
+                'msg': 'ok'
+            })
+
+        # 保存覆盖
+        payload = request.get_json(silent=True) or {}
+        content = payload.get('content', '')
+        if isinstance(content, str) and content.strip():
+            try:
+                parsed = json.loads(content)
+            except Exception as e:
+                return jsonify({'code': 1, 'msg': f'JSON解析失败: {str(e)}'}), 400
+        else:
+            parsed = payload.get('data')  # 兼容直接传对象
+        if parsed is None:
+            return jsonify({'code': 1, 'msg': '缺少待保存内容'}), 400
+
+        # 写入文件
+        with open(sample_path, 'w', encoding='utf-8') as f:
+            json.dump(parsed, f, ensure_ascii=False, indent=2)
+
+        return jsonify({'code': 0, 'msg': '保存成功'})
+    except FileNotFoundError:
+        return jsonify({'code': 1, 'msg': '示例文件不存在'}), 404
+    except Exception as e:
+        return jsonify({'code': 1, 'msg': str(e)}), 500
+
+
 @app.route('/api/chat', methods=['POST'])
 def chat():
     logging.info("进入 /api/chat 路由")
