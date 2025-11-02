@@ -1555,15 +1555,15 @@
                     <i class="fas fa-cog"></i>
                     <span>基本设置</span>
                 </div>
-                
-                <div class="nav-item active" onclick="navigateTo('documents')">
-                    <i class="fas fa-file-alt"></i>
-                    <span>文档管理</span>
-                </div>
                 <div class="nav-item" onclick="navigateTo('routes')">
                     <i class="fas fa-route"></i>
                     <span>路线推荐</span>
                 </div>
+                <div class="nav-item active" onclick="navigateTo('documents')">
+                    <i class="fas fa-file-alt"></i>
+                    <span>文档管理</span>
+                </div>
+
             </div>
         </div>
 
@@ -1593,14 +1593,6 @@
                         <div style="flex:1; min-height:200px;">
                             <!-- 行程卡片预览容器（与首页left-content的行程表风格一致） -->
                             <div id="routePreviewContainer">
-                                <!-- 空状态 -->
-                                <div id="previewEmpty" class="empty-state" style="display:block;">
-                                    <div class="empty-icon">
-                                        <i class="fas fa-route"></i>
-                                    </div>
-                                    <h3>预览行程</h3>
-                                    <p>点击右侧“预览效果”按钮，用文本框中的JSON预览行程卡片</p>
-                                </div>
                                 <!-- 预览内容 -->
                                 <div id="previewItineraryContent" style="display:none;">
                                     <div id="previewItineraryDays"></div>
@@ -1815,7 +1807,10 @@
                     if (routesPage) routesPage.style.display = 'block';
                     document.querySelector('.header h2').textContent = '路线推荐';
                     // 进入页面时自动加载一次
-                    loadRouteSampleData();
+                    // 加载示例后自动触发预览
+                    loadRouteSampleData().then(() => {
+                        try { previewRouteFromTextarea(); } catch (e) { console.error(e); }
+                    });
                     break;
                 }
                 default:
@@ -1907,7 +1902,6 @@
 
         function previewRouteFromTextarea() {
             const textarea = document.getElementById('routeSampleTextarea');
-            const previewEmpty = document.getElementById('previewEmpty');
             const previewContent = document.getElementById('previewItineraryContent');
             const daysContainer = document.getElementById('previewItineraryDays');
 
@@ -1939,13 +1933,11 @@
 
             const hasContent = normalized.days && normalized.days.some(d => d.locations && d.locations.length > 0);
             if (!hasContent) {
-                previewEmpty.style.display = 'block';
                 previewContent.style.display = 'none';
                 daysContainer.innerHTML = '';
                 return;
             }
 
-            previewEmpty.style.display = 'none';
             previewContent.style.display = 'block';
             daysContainer.innerHTML = normalized.days.map(day => renderPreviewDay(day)).join('');
         }
