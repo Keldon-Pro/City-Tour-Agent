@@ -2122,7 +2122,7 @@
                                         <i class="fas fa-file-import"></i> 导入Json
                                     </button>
                                     <button class="btn-primary" id="ai-generate-btn">
-                                        <i class="fas fa-magic"></i> 智能推荐
+                                        <i class="fas fa-magic"></i> 经典路线
                                     </button>
                                 </div>
                                 
@@ -2825,15 +2825,16 @@
             // 绑定AI推荐按钮
             const aiGenerateBtn = document.getElementById('ai-generate-btn');
             if (aiGenerateBtn) {
-                aiGenerateBtn.addEventListener('click', function() {
-                    // 第1步：获取完整messageHistory
+                aiGenerateBtn.addEventListener('click', async function() {
+                    try {
+                        const resp = await fetch('/api/sample-itinerary', { cache: 'no-store' });
+                        if (!resp.ok) throw new Error('示例数据加载失败');
+                        const sample = await resp.json();
+                        applyImportedItinerary(sample);
 
-                    
-                    // 第2步：检查对话数量（过滤有效的用户消息）
-
-    
-                    // 第3步：开始生成流程
-
+                    } catch (e) {
+                        showErrorMessage('加载示例失败：' + (e?.message || e));
+                    }
                 });
             }
 
