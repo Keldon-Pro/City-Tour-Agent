@@ -2075,16 +2075,43 @@
 
         // 直接上传文件函数（用于拖拽上传）
         async function uploadFileDirectly(file) {
+            // 先检查会话状态
+            const sessionValid = await checkSessionStatus();
+            if (!sessionValid) {
+                showNotification('error', '登录已过期，请重新登录');
+                window.location.href = '/login';
+                return;
+            }
+
             const formData = new FormData();
             formData.append('file', file);
             fileDropArea.classList.add('uploading');
 
             try {
-                const response = await fetch('/upload', {
+                const response = await fetch('/api/upload', {
                     method: 'POST',
                     body: formData,
                     credentials: 'include'
                 });
+                
+                // 检查是否被重定向到登录页面
+                if (response.redirected && response.url.includes('/login')) {
+                    showNotification('error', '登录已过期，请重新登录');
+                    window.location.href = '/login';
+                    return;
+                }
+                
+                // 检查Content-Type是否为JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    if (response.status === 401 || response.status === 302) {
+                        showNotification('error', '登录已过期，请重新登录');
+                        window.location.href = '/login';
+                        return;
+                    }
+                    throw new Error('服务器返回非JSON格式响应');
+                }
+                
                 const data = await response.json();
                 if (response.ok) {
                     showNotification('success', `文档上传成功: ${data.filename}`);
@@ -2095,7 +2122,7 @@
                     showNotification('error', '未登录，请重新登录');
                     window.location.href = '/login';
                 } else {
-                    showNotification('error', `上传失败: ${data.msg}`);
+                    showNotification('error', `上传失败: ${data.msg || '未知错误'}`);
                 }
             } catch (error) {
                 console.error('Upload error:', error);
@@ -2107,13 +2134,21 @@
 
         // 上传文件函数（用于点击上传）
         async function uploadFiles() {
-            const formData = new FormData();
             const files = fileInput.files;
             if (files.length === 0) {
                 showNotification('error', '请选择要上传的文件');
                 return;
             }
             
+            // 先检查会话状态
+            const sessionValid = await checkSessionStatus();
+            if (!sessionValid) {
+                showNotification('error', '登录已过期，请重新登录');
+                window.location.href = '/login';
+                return;
+            }
+
+            const formData = new FormData();
             formData.append('file', files[0]);
             fileDropArea.classList.add('uploading');
 
@@ -2123,6 +2158,25 @@
                     body: formData,
                     credentials: 'include'  // 关键，带 cookie！
                 });
+                
+                // 检查是否被重定向到登录页面
+                if (response.redirected && response.url.includes('/login')) {
+                    showNotification('error', '登录已过期，请重新登录');
+                    window.location.href = '/login';
+                    return;
+                }
+                
+                // 检查Content-Type是否为JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    if (response.status === 401 || response.status === 302) {
+                        showNotification('error', '登录已过期，请重新登录');
+                        window.location.href = '/login';
+                        return;
+                    }
+                    throw new Error('服务器返回非JSON格式响应');
+                }
+                
                 const data = await response.json();
                 if (response.ok) {
                     showNotification('success', `文档上传成功: ${data.filename}`);
@@ -2133,7 +2187,7 @@
                     showNotification('error', '未登录，请重新登录');
                     window.location.href = '/login';
                 } else {
-                    showNotification('error', `上传失败: ${data.msg}`);
+                    showNotification('error', `上传失败: ${data.msg || '未知错误'}`);
                 }
             } catch (error) {
                 console.error('Upload error:', error);
@@ -2218,11 +2272,51 @@
             }
         });
 
+        // 检查会话状态函数
+        async function checkSessionStatus() {
+            try {
+                const response = await fetch('/api/heartbeat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include'
+                });
+                
+                // 如果返回401或者被重定向到登录页面，说明会话过期
+                if (response.status === 401 || (response.redirected && response.url.includes('/login'))) {
+                    return false;
+                }
+                
+                // 检查Content-Type是否为JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    return false;
+                }
+                
+                return response.ok;
+            } catch (error) {
+                console.error('会话检查失败:', error);
+                return false;
+            }
+        }
+
         // 页面加载时检查索引状态
         document.addEventListener('DOMContentLoaded', () => {
             checkLogin();
             loadDocuments();
             checkIndexStatus();
+            
+            // 每30秒检查一次会话状态
+            setInterval(async () => {
+                const isValid = await checkSessionStatus();
+                if (!isValid) {
+                    showNotification('error', '登录已过期，即将跳转到登录页面');
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 2000);
+                }
+            }, 30000);
         });
 
         // 加载文档列表
