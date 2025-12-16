@@ -2146,6 +2146,9 @@
                                     <button class="btn-secondary" id="print-itinerary-btn" title="打印行程表">
                                         <i class="fas fa-print"></i> 打印行程表
                                     </button>
+                                    <button class="btn-secondary" id="export-json-btn" title="导出行程为JSON格式">
+                                        <i class="fas fa-file-export"></i> 导出行程为JSON格式
+                                    </button>
                                     <button class="btn-add-location" id="add-location-btn">
                                         <i class="fas fa-plus-circle"></i> 添加新地点
                                     </button>
@@ -4800,54 +4803,16 @@
                     alert('JSON解析失败：' + e.message);
                 }
             });
-            loadSampleBtn?.addEventListener('click', () => {
-                // 动态日期：从当天开始
-                const fmt = (d) => {
-                    const y = d.getFullYear();
-                    const m = String(d.getMonth() + 1).padStart(2, '0');
-                    const day = String(d.getDate()).padStart(2, '0');
-                    return `${y}-${m}-${day}`;
-                };
-                const today = new Date();
-                const day2 = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-                const day3 = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2);
-
-                // 标准数据格式：{"days": [...]}
-                const sample = {
-                    days: [
-                        {
-                            date: fmt(today),
-                            day_number: 1,
-                            locations: [
-                                { address: '海口美兰国际机场', time: '10:30', notes: '到达海口', fixed: true, visit_order: 1 },
-                                { address: '海口华彩洲际酒店', time: '12:00', notes: '办理入住，短暂休息', fixed: false, visit_order: 2 },
-                                { address: '海口骑楼老街', time: '15:00', notes: '历史文化街区，拍照打卡', fixed: false, visit_order: 3 },
-                                { address: '天空之山驿站', time: '18:30', notes: '赏绝美日落~', fixed: false, visit_order: 4 },
-                                { address: '海大南门夜市', time: '22:00', notes: '体验最火爆的海口夜市，感受人间烟火！', fixed: false, visit_order: 5 }
-                            ]
-                        },
-                        {
-                            date: fmt(day2),
-                            day_number: 2,
-                            locations: [
-                                { address: '海南省博物馆', time: '09:00', notes: '了解海南的历史和文化', fixed: false, visit_order: 1 },
-                                { address: '海瑞文化公园', time: '15:00', notes: '', fixed: false, visit_order: 2 },
-                                { address: '海口五源河体育场', time: '19:30', notes: '演唱会20:00开始，从A口安检', fixed: false, visit_order: 3 }
-                            ]
-                        },
-                        {
-                            date: fmt(day3),
-                            day_number: 3,
-                            locations: [
-                                { address: '海口五公祠', time: '09:30', notes: '', fixed: false, visit_order: 1 },
-                                { address: 'cdf海口国际免税城', time: '15:30', notes: '回家之前买点免税品', fixed: false, visit_order: 2 },
-                                { address: '海口美兰国际机场', time: '18:00', notes: '晚上8点飞机起飞', fixed: true, visit_order: 3 }
-                            ]
-                        }
-                    ]
-                };
-                if (importTextarea) {
-                    importTextarea.value = JSON.stringify(sample, null, 2);
+            loadSampleBtn?.addEventListener('click', async () => {
+                try {
+                    const resp = await fetch('/api/sample-itinerary', { cache: 'no-store' });
+                    if (!resp.ok) throw new Error('示例数据加载失败');
+                    const sample = await resp.json();
+                    if (importTextarea) {
+                        importTextarea.value = JSON.stringify(sample, null, 2);
+                    }
+                } catch (e) {
+                    alert('加载示例失败：' + (e?.message || e));
                 }
             });
             
